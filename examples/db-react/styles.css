@@ -1,0 +1,5 @@
+@layer db-foundations, db-components;
+@import '../../node_modules/@db-ux/core-foundations/build/styles/theme/rollup.css' layer(db-foundations);
+@import '../../node_modules/@db-ux/core-components/build/styles/bundle.css' layer(db-components);
+
+.copy-icon{display:inline-flex;width:1em;height:1em}.copy-icon>svg{width:100%;height:100%}

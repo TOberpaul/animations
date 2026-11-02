@@ -1,0 +1,8 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+examples/db-react/build/
+examples/shadcn/build/
+.env
+.env.*

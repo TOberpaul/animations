@@ -1,0 +1,14 @@
+@import '../../node_modules/@db-ux/core-foundations/build/styles/icons/rollup.css';
+
+/* Use outlined icons, including components that request a filled status icon.
+ * Prefer DB's outlined family when available, then the official standard set. */
+@property --db-icon-default-font-family {
+  syntax: '*';
+  inherits: false;
+  initial-value: 'db-default', 'db-ux-default', icon-font-fallback;
+}
+@property --db-icon-filled-font-family {
+  syntax: '*';
+  inherits: false;
+  initial-value: 'db-default', 'db-ux-default', icon-font-fallback;
+}

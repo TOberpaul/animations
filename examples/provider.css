@@ -1,0 +1,28 @@
+body{margin:0;min-width:0}
+.mini-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:24px;max-width:1400px;margin:0 auto;box-sizing:border-box}
+.mini-example{min-width:0;border:1px solid color-mix(in srgb,currentColor 18%,transparent);display:flex;flex-direction:column}
+.mini-example>header{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px;border-bottom:1px solid color-mix(in srgb,currentColor 12%,transparent)}
+.mini-example h2{font:600 14px/1.4 system-ui;margin:0}.mini-example output{font:11px/1.4 ui-monospace,monospace;opacity:.6}
+.mini-stage{position:relative;display:flex;align-items:center;justify-content:center;min-height:150px;padding:20px;box-sizing:border-box;min-width:0}
+.mini-example>small{font:11px/1.4 ui-monospace,monospace;opacity:.55;padding:0 16px 12px}
+.mini-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.action-items{display:grid;gap:4px;min-inline-size:160px}.action-item{justify-content:flex-start;text-align:start}
+.dialog-motion{--motion-scale-from:0;--motion-scale-origin:center center;--motion-scale-opacity:0}
+/* Keep DB's scroll container functional, without flashing its scrollbar while resizing. */
+#db-dialog:is([data-motion-state=opening],[data-motion-state=closing]) .db-dialog-content{scrollbar-width:none}
+#db-dialog:is([data-motion-state=opening],[data-motion-state=closing]) .db-dialog-content::-webkit-scrollbar{display:none}
+.notification-anchor{position:fixed;top:16px;right:16px;width:min(340px,calc(100vw - 32px));z-index:9999;--motion-slide-distance:calc(100% + 16px)}
+#db-dialog::backdrop,#db-drawer::backdrop{background-color:rgb(22 24 27 / 68%)}
+[data-mode=dark] #db-dialog::backdrop,[data-mode=dark] #db-drawer::backdrop{background-color:rgb(0 0 0 / 82%)}
+.trigger-slot{position:relative;width:100%;height:150px;min-width:0}
+.trigger-surface{position:absolute;left:0;top:0;width:184px;height:56px;max-width:100%;overflow:clip;cursor:pointer}
+.trigger-surface[data-expanded=true]{width:100%;height:150px;cursor:auto}
+.trigger-label{display:flex;align-items:center;justify-content:center;height:100%;white-space:nowrap;font-size:14px}
+.trigger-body{padding:16px;box-sizing:border-box;height:100%}.trigger-body p{margin:0 0 18px}
+.trigger-surface [hidden]{display:none!important}
+.mini-navigation{width:100%;overflow:clip}.mini-nav-strip{display:flex;width:200%;transform:translate3d(0,0,0);--motion-slide-distance:50%}
+.mini-nav-strip[data-open=true]{transform:translate3d(-50%,0,0)}
+.mini-nav-level{flex:0 0 50%;display:flex;align-items:center;justify-content:center;gap:10px;min-width:0;flex-wrap:wrap;padding:8px;box-sizing:border-box}
+.mini-nav-level>span{font-size:12px}
+@media(max-width:1050px){.mini-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.mini-grid{grid-template-columns:minmax(0,1fr);padding:16px}}
