@@ -1,20 +1,13 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { createMorphTransition, createLiquidMorphTransition, createScaleTransition, createSlideTransition } from '../../dist/index.js';
 
 // Radix owns presence, placement, focus and dismissal. Keep its controlled open
 // state until the reversible exit finishes; only then let Radix unmount.
-export function useMotionOverlay(name, kind, liquid = false) {
+export function useMotionOverlay(name, kind, liquid=false,grow=false,replaceTrigger=false) {
   const [present, setPresent] = useState(false), [state, setState] = useState('closed');
   const [node, contentRef] = useState(null);
   const trigger = useRef(null), backdrop = useRef(null), controller = useRef(null);
   const desired = useRef(false), preparation = useRef(0), timers = useRef([]);
-  const pointerHeld = useRef(false);
-  useEffect(() => {
-    if (!liquid) return;
-    const release = () => { pointerHeld.current = false; controller.current?.release?.(); };
-    window.addEventListener('pointerup',release,true);window.addEventListener('pointercancel',release,true);window.addEventListener('blur',release);
-    return () => { release();window.removeEventListener('pointerup',release,true);window.removeEventListener('pointercancel',release,true);window.removeEventListener('blur',release); };
-  },[liquid]);
   const request = useCallback(next => {
     desired.current = next;
     if (next) {
@@ -48,13 +41,14 @@ export function useMotionOverlay(name, kind, liquid = false) {
       // Keep the overlay transparent until entrance preparation and after the
       // exit effects are released, while Radix still owns the mounted portal.
       backdrop.current?.toggleAttribute('data-motion-active', next !== 'closed');
+      if(replaceTrigger&&trigger.current){trigger.current.style.visibility=next==='closed'?'':'hidden';trigger.current.inert=next!=='closed';}
       setState(next);
       if (next === 'closed' && !desired.current) setPresent(false);
     } };
     const transition = kind === 'menu'
-      ? (liquid ? createLiquidMorphTransition : createMorphTransition)({ ...options, trigger: trigger.current, pressed: pointerHeld.current })
-      : kind === 'dialog'
-      ? createScaleTransition({ ...options, backdrop: backdrop.current })
+      ? (liquid ? createLiquidMorphTransition : createMorphTransition)({ ...options, trigger: trigger.current, replaceTrigger })
+      : kind === 'dialog' || grow
+      ? createScaleTransition({ ...options, axis:grow&&kind==='sheet'?'width':undefined, backdrop: backdrop.current })
       : createSlideTransition({ ...options, side: 'right', backdrop: kind === 'sheet' ? backdrop.current : undefined });
     controller.current = transition;
     window.shadcnMotionDemo ??= {};
@@ -72,14 +66,15 @@ export function useMotionOverlay(name, kind, liquid = false) {
       disposed = true; cancelAnimationFrame(preparation.current);
       releasePlacement();
       backdrop.current?.removeAttribute('data-motion-active');
+      if(replaceTrigger&&trigger.current){trigger.current.style.visibility='';trigger.current.inert=false;}
       timers.current.forEach(clearTimeout); transition.destroy(); controller.current = null;
       delete window.shadcnMotionDemo[name];
     };
-  }, [node, kind, name, request, liquid]);
+  }, [node, kind, name, request, liquid, replaceTrigger]);
   const stress = () => {
     timers.current.forEach(clearTimeout);
     request(true);
     timers.current = [120, 160, 200, 240].map((delay, index) => setTimeout(() => request(index % 2 === 1), delay));
   };
-  return { present, state, contentRef, trigger, backdrop, request, stress, press: () => { pointerHeld.current=true;controller.current?.press?.(); }, close: () => request(false), toggle: () => request(!desired.current) };
+  return { present, state, contentRef, trigger, backdrop, request, stress, close: () => request(false), toggle: () => request(!desired.current) };
 }

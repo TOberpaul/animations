@@ -1,5 +1,22 @@
 :root {
+  --motion-overshoot-min: 15%;
   --motion-duration-default: 300ms;
+  --motion-duration-content: var(--motion-duration-default);
+  --motion-easing-content: var(--motion-easing-standard);
+  --motion-content-distance: var(--motion-reveal-distance);
+  --motion-reveal-distance: .75rem;
+  --motion-content-surface-end: .5;
+  --motion-content-reveal-offset: 0;
+  --motion-content-reveal-end: 1;
+  --motion-content-reveal-blur: var(--motion-reveal-blur);
+  --motion-content-blur: var(--motion-reveal-blur);
+  --motion-content-progressive: 0;
+  --motion-content-stagger: .08;
+  --motion-duration-content-entry-stagger: calc(var(--motion-duration-content) * var(--motion-content-stagger));
+  --motion-component-content-offset: .4;
+  --motion-component-content-end: 1;
+  --motion-component-content-stagger: .04;
+  --motion-component-content-stagger-span: .12;
   --motion-duration-fast: 160ms;
   --motion-duration-moderate: 280ms;
   --motion-duration-slow: 420ms;
@@ -29,12 +46,19 @@
   --motion-morph-organic-radius: 18%;
   --motion-morph-shape-offset: .3;
   --motion-morph-geometry-end: .8;
+  --motion-morph-overshoot: var(--motion-liquid-overshoot);
+  --motion-morph-peak-offset: .55;
+  --motion-scale-overshoot: var(--motion-morph-overshoot);
+  --motion-scale-peak-offset: var(--motion-morph-peak-offset);
   --motion-morph-reveal-offset: .3;
   --motion-morph-reveal-end: var(--motion-morph-geometry-end);
   --motion-scale-from: .92;
   --motion-scale-opacity: 0;
   --motion-scale-origin: center center;
   --motion-slide-distance: 100%;
+  --motion-slide-overshoot: var(--motion-liquid-overshoot);
+  --motion-slide-arrive-offset: .72;
+  --motion-slide-peak-offset: var(--motion-slide-arrive-offset);
   --motion-duration-liquid: var(--motion-duration-default);
   --motion-easing-liquid: var(--motion-easing-standard);
   --motion-liquid-geometry-end: .8;
@@ -42,12 +66,12 @@
   --motion-liquid-reveal-end: var(--motion-liquid-geometry-end);
   --motion-liquid-reveal-blur: var(--motion-reveal-blur);
   --motion-liquid-volume-offset: .18;
-  --motion-liquid-source-hide-end: var(--motion-liquid-volume-offset);
+  --motion-liquid-source-hide-start: var(--motion-liquid-reveal-offset);
+  --motion-liquid-source-hide-end: var(--motion-liquid-reveal-end);
   --motion-liquid-source-blur: var(--motion-liquid-reveal-blur);
   --motion-liquid-peak-offset: .5;
-  --motion-liquid-trigger-overshoot: 10%;
-  --motion-liquid-press: 1;
-  --motion-liquid-overshoot: 10%;
+  --motion-liquid-trigger-overshoot: .75rem;
+  --motion-liquid-overshoot: .75rem;
 }
 @media (prefers-reduced-motion: reduce) {
   :root { --motion-duration-morph: 0ms; --motion-duration-slide: 0ms; --motion-duration-scale: 0ms; --motion-duration-backdrop: 0ms; }

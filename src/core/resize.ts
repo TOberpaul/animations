@@ -1,6 +1,6 @@
 import { createTransition, type Track } from './animation.js';
-import { morphGeometry, resizeGeometry } from './geometry.js';
-import { numberToken, token } from './tokens.js';
+import { growthAnchor, growthInsets, localScale, morphGeometry, resizeGeometry } from './geometry.js';
+import { overshootToken, numberToken, token } from './tokens.js';
 import type { MotionState, Options, Transition } from './lifecycle.js';
 import { fixedContentTracks } from './content-layout.js';
 export interface ResizeOptions extends Options {
@@ -8,6 +8,7 @@ export interface ResizeOptions extends Options {
    * node in its closed layout; onStateChange prepares its open layout during
    * opening and restores the closed layout only after closed. */
   trigger?: HTMLElement;
+  axis?: 'width' | 'height';
   backdrop?: HTMLElement | 'native';
   /** Optional component-owned SVG surface, sized/positioned over the content.
    * It is animated in parallel and hidden at rest; never replaces the HTML surface. */
@@ -41,10 +42,10 @@ export function createResizeTransition(options: ResizeOptions, pattern: 'morph' 
   } }, pattern, () => {
     const edgeGeometry = !trigger || sameElement ? undefined : morphGeometry(trigger, content);
     const factor = trigger ? undefined : numberToken(content, 'scale-from');
-    const collapseAxis = !trigger ? factor === 0 ? 'both' : undefined : sameElement ? undefined : edgeGeometry!.from.height === 0 ? 'height' : 'width';
+    const collapseAxis = !trigger ? factor === 0 ? options.axis ?? 'both' : undefined : sameElement ? undefined : edgeGeometry!.from.height === 0 ? 'height' : 'width';
     const source = trigger ? sameElement ? closedRect : edgeGeometry!.from : (to: DOMRectReadOnly, ax: number, ay: number) => ({
-      left: to.left + to.width * (1 - factor!) * ax, top: to.top + to.height * (1 - factor!) * ay,
-      width: to.width * factor!, height: to.height * factor!
+      left: to.left + to.width * (options.axis === 'height' ? 0 : 1 - factor!) * ax, top: to.top + to.height * (options.axis === 'width' ? 0 : 1 - factor!) * ay,
+      width: to.width * (options.axis === 'height' ? 1 : factor!), height: to.height * (options.axis === 'width' ? 1 : factor!)
     });
     const g = resizeGeometry(content, source, trigger ? edgeGeometry?.origin : token(content, 'scale-origin'), collapseAxis);
     const style = getComputedStyle(content);
@@ -81,15 +82,29 @@ export function createResizeTransition(options: ResizeOptions, pattern: 'morph' 
       },
       transform: progress === 1 ? base : `${prefix} translate(${g.dx * (1 - progress)}px,${g.dy * (1 - progress)}px)`
     });
-    const frames: Keyframe[] = overlay ? [frame(0), frame(numberToken(content, 'morph-shape-offset')), frame(1)] : [frame(0), frame(1)];
+    const overshoot=overshootToken(content,`${pattern}-overshoot`,g.width.to,g.height.to);
+    const frames:Keyframe[]=[frame(0)];
+    if(overshoot>0){
+      const peak=numberToken(content,`${pattern}-peak-offset`);
+      if(peak<=0||peak>=start)throw new Error('Resize peak must satisfy 0 < peak < geometry end.');
+      const box=content.getBoundingClientRect(),{xScale,yScale}=localScale(content,box);
+      let {left,right,top,bottom}=growthInsets(edgeGeometry?.anchor??(sameElement?growthAnchor(closedRect,box):g.anchor),overshoot);
+      if(options.axis==='width'){top=0;bottom=0;}
+      if(options.axis==='height'){left=0;right=0;}
+      const expanded=resizeGeometry(content,{left:box.left-left*xScale,top:box.top-top*yScale,width:box.width+(left+right)*xScale,height:box.height+(top+bottom)*yScale});
+      frames.push({...frame(1),offset:peak/start,width:`${expanded.width.from}px`,height:`${expanded.height.from}px`,
+        transform:`${prefix} translate(${expanded.dx}px,${expanded.dy}px)`});
+    }else if(overlay)frames.push(frame(numberToken(content,'morph-shape-offset')));
+    frames.push(frame(1));
     if (overlay) frames.forEach(frame => {
       frame.clipPath = `inset(0 round ${style.borderRadius})`;
     });
-    // Finish the geometry first, then hold it at full size during the reveal.
+    // Grow past the target, settle, then hold the final size. Content reveal
+    // finishes at the geometry endpoint on the same reversible timeline.
     // Segment easing keeps this boundary exact even with custom reveal easing.
     for (const frame of frames) { frame.offset = Number(frame.offset) * start; frame.easing = easing; }
     frames.push({ ...frames[frames.length - 1], offset: 1, easing: 'linear' });
-    const fixedContents=fixedContentTracks(content,frames);
+    const fixedContents=fixedContentTracks(content,frames,options.revealPseudoElements);
     const result: Track[] = [{ element: content, frames, easing: 'linear' },...fixedContents];
     if (shadow !== 'none' && trigger && !sameElement) {
       // Keep the component's own shadow; reveal it with the contents rather

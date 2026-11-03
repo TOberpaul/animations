@@ -9,7 +9,7 @@ createServer(async (req,res) => {
   if (!path.startsWith(root + sep)) { res.writeHead(403).end(); return; }
   try {
     const body = await readFile(path);
-    res.setHeader('Content-Type',({'.html':'text/html','.css':'text/css','.js':'text/javascript','.mp4':'video/mp4'})[extname(path)] || 'application/octet-stream');
+    res.setHeader('Content-Type',({'.html':'text/html','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.mp4':'video/mp4'})[extname(path)] || 'application/octet-stream');
     if (extname(path) === '.mp4') {
       res.setHeader('Accept-Ranges','bytes');
       if (req.headers.range) {

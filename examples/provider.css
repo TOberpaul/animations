@@ -7,6 +7,9 @@ body{margin:0;min-width:0}
 .mini-example>small{font:11px/1.4 ui-monospace,monospace;opacity:.55;padding:0 16px 12px}
 .mini-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 .action-items{display:grid;gap:4px;min-inline-size:160px}.action-item{justify-content:flex-start;text-align:start}
+/* Component-owned absolute placement: DB's collision helper can incorrectly
+   flip end to start when trigger.left < menu.width even though the menu fits. */
+.action-menu-popover>.db-popover-content{inset-inline-start:auto!important;inset-inline-end:0!important}
 .dialog-motion{--motion-scale-from:0;--motion-scale-origin:center center;--motion-scale-opacity:0}
 /* Keep DB's scroll container functional, without flashing its scrollbar while resizing. */
 #db-dialog:is([data-motion-state=opening],[data-motion-state=closing]) .db-dialog-content{scrollbar-width:none}
@@ -14,15 +17,49 @@ body{margin:0;min-width:0}
 .notification-anchor{position:fixed;top:16px;right:16px;width:min(340px,calc(100vw - 32px));z-index:9999;--motion-slide-distance:calc(100% + 16px)}
 #db-dialog::backdrop,#db-drawer::backdrop{background-color:rgb(22 24 27 / 68%)}
 [data-mode=dark] #db-dialog::backdrop,[data-mode=dark] #db-drawer::backdrop{background-color:rgb(0 0 0 / 82%)}
-.trigger-slot{position:relative;width:100%;height:150px;min-width:0}
-.trigger-surface{position:absolute;left:0;top:0;width:184px;height:56px;max-width:100%;overflow:clip;cursor:pointer}
-.trigger-surface[data-expanded=true]{width:100%;height:150px;cursor:auto}
-.trigger-label{display:flex;align-items:center;justify-content:center;height:100%;white-space:nowrap;font-size:14px}
-.trigger-body{padding:16px;box-sizing:border-box;height:100%}.trigger-body p{margin:0 0 18px}
-.trigger-surface [hidden]{display:none!important}
+.trigger-slot{position:relative;display:grid;place-items:center;width:100%;height:150px;min-width:0}
+.rename-surface{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(100%,280px);max-width:100%;margin:0;min-width:0}
+.rename-surface>input,.rename-surface>.db-input{width:100%;min-width:0;box-sizing:border-box}
+.rename-surface[hidden]{display:none!important}
 .mini-navigation{width:100%;overflow:clip}.mini-nav-strip{display:flex;width:200%;transform:translate3d(0,0,0);--motion-slide-distance:50%}
 .mini-nav-strip[data-open=true]{transform:translate3d(-50%,0,0)}
 .mini-nav-level{flex:0 0 50%;display:flex;align-items:center;justify-content:center;gap:10px;min-width:0;flex-wrap:wrap;padding:8px;box-sizing:border-box}
 .mini-nav-level>span{font-size:12px}
+.content-example>.mini-stage{flex-direction:column;align-items:stretch;justify-content:flex-start;gap:20px}
+.content-example>.mini-stage>button{align-self:flex-start}
+.content-text{min-height:170px}.content-text small,.content-page small{font-size:11px;letter-spacing:.08em;opacity:.65}
+.content-text h3{font-size:22px;line-height:1.2;margin:12px 0}.content-text p,.content-story p{font-size:14px;line-height:1.6;margin:0;opacity:.75}
+.content-figure{margin:0;min-width:0}.content-figure img{display:block;width:100%;height:160px;object-fit:cover}.content-figure figcaption{font-size:12px;line-height:1.5;margin-top:10px;opacity:.65}
+.content-page-example{grid-column:1/-1}.content-page-controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.content-page-controls small{font-size:12px;opacity:.65}
+.content-page{display:grid;gap:24px;width:100%;max-width:1000px;align-self:center}.content-page>header{max-width:640px}.content-page h3{font-size:clamp(28px,4vw,44px);line-height:1.1;margin:12px 0}.content-page>header p{font-size:16px;line-height:1.6;margin:0;opacity:.75}
+.content-page>.content-figure img{height:clamp(180px,28vw,320px)}.content-page-stories{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.content-story{padding:20px;min-width:0}.content-story h4{font-size:18px;line-height:1.3;margin:10px 0}
+@media(max-width:620px){.content-page-stories{grid-template-columns:1fr}}
 @media(max-width:1050px){.mini-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.mini-grid{grid-template-columns:minmax(0,1fr);padding:16px}}
+.panel-grid-example{grid-column:1/-1}
+.panel-grid-layout{position:relative;display:flex;align-items:stretch;width:100%;min-height:240px;overflow:clip}
+.panel-grid-side{flex:none;width:24%;height:240px;box-sizing:border-box;overflow:clip}
+.panel-grid-side[hidden]{display:none!important}
+.panel-grid-side>div{padding:16px;box-sizing:border-box}
+.panel-grid-main{flex:1;min-width:0;padding:20px;box-sizing:border-box}
+.panel-grid-main .mini-actions{justify-content:flex-start}
+.panel-grid-layout h3{margin:0 0 12px;font-weight:600}
+.panel-grid-layout p{font-size:14px;opacity:.7;margin:0 0 16px}
+#db-grow-drawer::backdrop{background-color:rgb(22 24 27 / 68%)}
+[data-mode=dark] #db-grow-drawer::backdrop{background-color:rgb(0 0 0 / 82%)}
+@media(max-width:620px){.panel-grid-side{width:22%}.panel-grid-side>div{padding:8px}.panel-grid-main{padding:12px}}
+.panel-grid-example>.mini-stage{padding:0;align-items:stretch}
+.panel-grid-example>small{padding-top:12px;border-top:1px solid color-mix(in srgb,currentColor 12%,transparent)}
+.panel-grid-side{border-radius:0;border-block:0}
+.panel-grid-side:first-child{border-inline-start:0}
+.panel-grid-side:last-child{border-inline-end:0}
+.content-story-slot{position:relative;min-width:0;min-height:240px}
+.content-story-slot>.content-story{position:absolute;inset:0;width:100%;height:100%;box-sizing:border-box}
+.content-card-origin{display:flex;align-items:center;gap:8px;font-size:12px}
+.content-card-origin select{font:inherit;color:inherit;background:transparent;border:1px solid color-mix(in srgb,currentColor 25%,transparent);padding:6px;border-radius:4px}
+.content-card-origin option{color:CanvasText;background:Canvas}
+/* Replacing menu shares the trigger's top/right anchor rather than a lower edge. */
+.action-menu-replacing>.db-popover-content{inset-block-start:0!important;inset-block-end:auto!important}
+.split-button-group{display:inline-flex;align-items:stretch;gap:2px;isolation:isolate}
+.split-button-group>button:first-child{border-start-end-radius:0;border-end-end-radius:0}
+.split-button-group>button:last-child{border-start-start-radius:0;border-end-start-radius:0}

@@ -9,7 +9,7 @@ function settleDbEffects(root) {
     if (animation instanceof CSSTransition || animation instanceof CSSAnimation) animation.cancel();
   });
 }
-export function useDbMotion(name,kind,liquid=false) {
+export function useDbMotion(name,kind,liquid=false,grow=false,replaceTrigger=false) {
   const host=useRef(null),trigger=useRef(null),controller=useRef(null),timers=useRef([]);
   const [state,setState]=useState('closed'),[present,setPresent]=useState(false);
   useLayoutEffect(()=>{
@@ -26,7 +26,15 @@ export function useDbMotion(name,kind,liquid=false) {
     }
     function releasePosition(){
       positionHold?.cancel();positionHold=null;
-      if(article)handleFixedPopover({element:article,parent:root});
+      if(article)handleFixedPopover({element:article,parent:root,forceAbsolute:root.classList.contains('action-menu-popover')});
+    }
+    if(kind==='notification'){
+      content.setAttribute('data-motion-before-order','0');
+      for(const selector of ['[data-area="head"]','[data-area="content"]']){
+        const group=content.querySelector(selector);
+        if(group){group.setAttribute('data-motion-content-group','');group.setAttribute('data-motion-order','1');}
+      }
+      content.querySelector('button')?.setAttribute('data-motion-order','2');
     }
     content.inert=true;
     const options={content,reveal:[...content.children].filter(element=>element instanceof HTMLElement),revealPseudoElements:kind==='notification'?['::before']:undefined,onStateChange(next){
@@ -36,6 +44,7 @@ export function useDbMotion(name,kind,liquid=false) {
       // are created; a deferred React update would attach them while hidden.
       if(kind==='notification')flushSync(()=>setState(next));else setState(next);
       const visible=next!=='closed';
+      if(replaceTrigger&&trigger.current){trigger.current.style.visibility=visible?'hidden':'';trigger.current.inert=visible;}
       content.inert=!visible;
       trigger.current?.setAttribute('aria-expanded',String(next==='opening'||next==='open'));
       if(nativeDialog){syncDialogOpenState(root,visible,false);settleDbEffects(root);}
@@ -44,14 +53,12 @@ export function useDbMotion(name,kind,liquid=false) {
       if(kind==='popover'&&next==='closed')flushSync(()=>setPresent(false));
       if(next==='opening'&&kind==='popover'){
         settleDbEffects(root);
-        if(document.activeElement===trigger.current)content.querySelector('button')?.focus({preventScroll:true});
+        if((replaceTrigger||document.activeElement===trigger.current)&&!window.motionPlayground?.previewing)content.querySelector('button')?.focus({preventScroll:true});
       }
       if(next==='closed'&&kind!=='notification')trigger.current?.focus({preventScroll:true});
     }};
-    const raw=kind==='popover'?(liquid?createLiquidMorphTransition:createMorphTransition)({...options,trigger:trigger.current})
-      :kind==='drawer'||kind==='notification'?createSlideTransition({...options,side:'right',backdrop:kind==='drawer'?'native':undefined}):createScaleTransition({...options,backdrop:'native'});
-    const releasePress=()=>raw.release?.();
-    if(liquid){window.addEventListener('pointerup',releasePress,true);window.addEventListener('pointercancel',releasePress,true);window.addEventListener('blur',releasePress);}
+    const raw=kind==='popover'?(liquid?createLiquidMorphTransition:createMorphTransition)({...options,trigger:trigger.current,replaceTrigger})
+      :grow?createScaleTransition({...options,axis:kind==='drawer'?'width':undefined,backdrop:kind==='drawer'?'native':undefined}):kind==='drawer'||kind==='notification'?createSlideTransition({...options,side:'right',backdrop:kind==='drawer'?'native':undefined}):createScaleTransition({...options,backdrop:'native'});
     function open(){
       if(disposed||desired)return;
       desired=true;
@@ -59,10 +66,10 @@ export function useDbMotion(name,kind,liquid=false) {
       // DB schedules positioning on controlled open. Complete that preparation
       // before morphing the actual DB surface, including its original background.
       priming=true;setState('opening');flushSync(()=>setPresent(true));
-      handleFixedPopover({element:article,parent:root});
+      handleFixedPopover({element:article,parent:root,forceAbsolute:root.classList.contains('action-menu-popover')});
       const start=()=>{
         frame=0;priming=false;if(!desired||disposed)return;
-        handleFixedPopover({element:article,parent:root});raw.open();
+        handleFixedPopover({element:article,parent:root,forceAbsolute:root.classList.contains('action-menu-popover')});raw.open();
       };
       if(matchMedia('(prefers-reduced-motion: reduce)').matches||parseFloat(getComputedStyle(content).getPropertyValue('--motion-duration-morph'))===0)start();
       else frame=requestAnimationFrame(()=>{frame=requestAnimationFrame(start);});
@@ -77,15 +84,15 @@ export function useDbMotion(name,kind,liquid=false) {
       }
       else raw.close();
     }
-    const motion={get state(){return priming?'opening':raw.state;},get isOpen(){return desired;},open,close,press(){if(desired){close();return;}raw.press?.();open();},toggle(){desired?close():open();},destroy(){
+    const motion={get state(){return priming?'opening':raw.state;},get isOpen(){return desired;},open,close,toggle(){desired?close():open();},destroy(){
       if(disposed)return;disposed=true;priming=false;cancelAnimationFrame(frame);timers.current.forEach(clearTimeout);positionHold?.cancel();raw.destroy();
-      if(liquid){window.removeEventListener('pointerup',releasePress,true);window.removeEventListener('pointercancel',releasePress,true);window.removeEventListener('blur',releasePress);}
+      if(replaceTrigger&&trigger.current){trigger.current.style.visibility='';trigger.current.inert=false;}
       if(nativeDialog){syncDialogOpenState(root,false,false);settleDbEffects(root);}
     }};
     controller.current=motion;
     window.dbMotionDemo??={};window.dbMotionDemo[name]={motion,content,host:root};
     return()=>{motion.destroy();delete window.dbMotionDemo[name];controller.current=null;};
-  },[name,kind,liquid]);
+  },[name,kind,liquid,replaceTrigger]);
   function stress(){timers.current.forEach(clearTimeout);timers.current=[];for(let i=0;i<7;i++)timers.current.push(setTimeout(()=>controller.current?.toggle(),i*85));}
-  return {host,trigger,state,present,stress,press:()=>controller.current?.press(),open:()=>controller.current?.open(),close:()=>controller.current?.close(),toggle:()=>controller.current?.toggle(),cancel(event){event.preventDefault();controller.current?.close();}};
+  return {host,trigger,state,present,stress,open:()=>controller.current?.open(),close:()=>controller.current?.close(),toggle:()=>controller.current?.toggle(),cancel(event){event.preventDefault();controller.current?.close();}};
 }

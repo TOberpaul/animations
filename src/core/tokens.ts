@@ -21,10 +21,25 @@ export const numberToken = (element: Element, name: string): number => {
   return value;
 };
 
-export function percentageToken(element: Element, name: string): number {
+/** Resolve a CSS length (including rem/calc) once, in local CSS pixels. */
+export function lengthToken(element: Element, name: string): number {
   const value = token(element, name);
-  if (!/^(?:\d+(?:\.\d*)?|\.\d+)%$/.test(value)) throw new Error(`--motion-${name} must be a non-negative percentage, e.g. 8%.`);
-  const amount = Number(value.slice(0, -1));
-  if (!Number.isFinite(amount)) throw new Error(`Invalid --motion-${name}`);
-  return amount / 100;
+  if(value.includes('%')||!CSS.supports('transform',`translateX(${value})`))throw new Error(`--motion-${name} must be a non-negative CSS length, e.g. .5rem.`);
+  const probe=document.createElement('span');
+  probe.style.cssText='position:absolute;visibility:hidden;pointer-events:none;display:block;width:0;height:0;padding:0;border:0;font-size:inherit';
+  probe.style.marginLeft=value;
+  let amount:number;
+  element.appendChild(probe);
+  try{amount=parseFloat(getComputedStyle(probe).marginLeft);}finally{probe.remove();}
+  if(!Number.isFinite(amount)||amount<0)throw new Error(`Invalid --motion-${name}`);
+  return amount;
+}
+
+/** Proportional overshoot per edge, capped by the pattern's CSS length budget. */
+export function overshootToken(element:HTMLElement,name:string,width?:number,height?:number):number{
+  const percentage=token(element,'overshoot-min');
+  if(!/^\d+(?:\.\d+)?%$/.test(percentage))throw new Error('--motion-overshoot-min must be a non-negative percentage.');
+  const style=getComputedStyle(element);
+  const w=width??parseFloat(style.width),h=height??parseFloat(style.height);
+  return Math.min(Math.min(w,h)*parseFloat(percentage)/100,lengthToken(element,name));
 }

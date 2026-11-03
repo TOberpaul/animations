@@ -1,14 +1,17 @@
 import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {createPortal} from 'react-dom';
-import {DBButton,DBCard,DBPopover,DBDialog,DBDialogHeader,DBDialogFooter,DBDrawer,DBDrawerHeader,DBDrawerFooter,DBNotification} from '@db-ux/react-core-components';
+import {DBButton,DBCard,DBInput,DBPopover,DBDialog,DBDialogHeader,DBDialogFooter,DBDrawer,DBDrawerHeader,DBDrawerFooter,DBNotification} from '@db-ux/react-core-components';
 import {useDbMotion} from './use-db-motion.js';
-import {Example,TriggerExample,NavigationExample} from '../mini-examples.jsx';
+import {Example,RenameExample,NavigationExample,Chevron} from '../mini-examples.jsx';
+import {PanelGridExample} from '../panel-grid.jsx';
+import {ContentExamples} from '../content-examples.jsx';
 import {connectPlayground} from '../provider-bridge.js';
 
 const common={'data-motion-db':'true','data-motion-state':'closed','data-icon-variant':'default'};
-function Menu({liquid=false,notify}){
-  const m=useDbMotion(liquid?'liquidPopover':'popover','popover',liquid);
+function Menu({liquid=false,replace=false,split=false,notify}){
+  const id=split?'db-split-popover':replace?'db-replace-popover':liquid?'db-liquid-popover':'db-popover';
+  const m=useDbMotion(split?'splitPopover':replace?'replacePopover':liquid?'liquidPopover':'popover','popover',liquid,false,replace);
   function keys(e){
     if(e.key==='Escape'||e.key==='Tab'){m.close();return;}
     if(!['ArrowDown','ArrowUp','Home','End'].includes(e.key))return;
@@ -17,37 +20,46 @@ function Menu({liquid=false,notify}){
     items[next]?.focus({preventScroll:true});
   }
   useEffect(()=>{const outside=e=>{if(!m.host.current?.contains(e.target))m.close();};document.addEventListener('pointerdown',outside);return()=>document.removeEventListener('pointerdown',outside);},[]);
-  return <Example name={liquid?'Liquid Morph':'Morph'} component="DBPopover · DBButton" state={m.state}>
-    <DBPopover {...common} id={liquid?'db-liquid-popover':'db-popover'} ref={m.host} open={m.present} animation={false} placement="top" gap width="auto" onKeyDown={keys}
-      trigger={<DBButton id={liquid?'db-liquid-popover-trigger':'db-popover-trigger'} ref={m.trigger} variant="filled" aria-haspopup="menu" aria-expanded={m.present} onPointerDown={liquid?e=>{if(e.button===0)m.press();}:undefined} onClick={liquid?e=>{if(e.detail===0)m.toggle();}:m.toggle}>••• Aktionen</DBButton>}>
-      <div className="action-items" role="menu" aria-label="Aktionen">{[['Bearbeiten','arrow_up_right'],['Duplizieren','copy'],['Löschen','cross']].map(([label,icon])=><DBButton key={label} variant="filled" role="menuitem" width="full" className="action-item" icon={icon==='copy'?'none':icon} data-icon-variant="default" onClick={()=>{m.close();notify(label);}}>{icon==='copy'&&<span className="copy-icon" aria-hidden="true" dangerouslySetInnerHTML={{__html:__STANDARD_COPY_SVG__}}/>}{label}</DBButton>)}</div>
+  const triggerButton=<DBButton id={id+'-trigger'} ref={m.trigger} variant="filled" aria-label={split?'More save actions':undefined} aria-haspopup="menu" aria-expanded={m.present} onClick={m.toggle}>{split?<Chevron/>:'Actions'}</DBButton>;
+  return <Example name={replace?'Morph':liquid?'Extract':'Grow'} component={split?'DBButton group · Main + secondary actions · DBPopover':'DBPopover · DBButton'} state={m.state}>
+    <DBPopover {...common} id={id} ref={m.host} open={m.present} animation={false} className={replace?'action-menu-popover action-menu-replacing':'action-menu-popover'} forceAbsolute placement="bottom-end" gap={!replace} width="auto" onKeyDown={keys}
+      trigger={split?<div className="split-button-group" role="group" aria-label="Save actions"><DBButton variant="filled" onClick={()=>notify('Saved')}>Save</DBButton>{triggerButton}</div>:triggerButton}>
+      <div className="action-items" role="menu" aria-label="Actions">{(split?['Save as draft','Duplicate','Export']:['Edit','Duplicate','Delete']).map(label=><DBButton key={label} variant="ghost" role="menuitem" width="full" className="action-item" onClick={()=>{m.close();notify(label);}}>{label}</DBButton>)}</div>
     </DBPopover>
   </Example>;
 }
 function DialogExample(){
   const m=useDbMotion('dialog','dialog');
-  return <Example name="Dialog" component="DBDialog" state={m.state}><DBButton id="db-dialog-trigger" ref={m.trigger} variant="filled" onClick={m.toggle}>Dialog öffnen</DBButton><div className="dialog-motion"><DBDialog {...common} id="db-dialog" ref={m.host} containerSize="small" onCancel={m.cancel} header={<DBDialogHeader text="Änderungen speichern?" closeButtonText="Dialog schließen"/>} footer={<DBDialogFooter><DBButton variant="ghost" onClick={m.close}>Abbrechen</DBButton><DBButton variant="brand" onClick={m.close}>Speichern</DBButton></DBDialogFooter>}><p>Deine Änderungen werden übernommen.</p></DBDialog></div></Example>;
+  return <Example name="Grow" component="DBDialog" state={m.state}><DBButton id="db-dialog-trigger" ref={m.trigger} variant="filled" onClick={m.toggle}>Open dialog</DBButton><div className="dialog-motion"><DBDialog {...common} id="db-dialog" ref={m.host} containerSize="small" onCancel={m.cancel} header={<DBDialogHeader data-motion-content-group="" text="Save changes?" closeButtonText="Close dialog"/>} footer={<DBDialogFooter data-motion-content-group=""><DBButton variant="filled" onClick={m.close}>Cancel</DBButton><DBButton variant="filled" onClick={m.close}>Save</DBButton></DBDialogFooter>}><p>Your changes will be saved.</p></DBDialog></div></Example>;
 }
-function DrawerExample(){
-  const m=useDbMotion('drawer','drawer');
-  return <Example name="Drawer" component="DBDrawer" state={m.state}><DBButton id="db-drawer-trigger" ref={m.trigger} variant="filled" onClick={m.toggle}>Drawer öffnen</DBButton><DBDrawer {...common} id="db-drawer" ref={m.host} direction="to-left" containerSize="small" onCancel={m.cancel} header={<DBDrawerHeader text="Einstellungen" closeButtonText="Drawer schließen"/>} footer={<DBDrawerFooter><DBButton variant="filled" onClick={m.close}>Fertig</DBButton></DBDrawerFooter>}><p>Deine Einstellungen.</p></DBDrawer></Example>;
+function DrawerExample({grow=false}){
+  const m=useDbMotion(grow?'grow-drawer':'drawer','drawer',false,grow);
+  return <Example name="Grow" component="DBDrawer" state={m.state}><DBButton id={grow?'db-grow-drawer-trigger':'db-drawer-trigger'} ref={m.trigger} variant="filled" onClick={m.toggle}>Open panel</DBButton><DBDrawer {...common} id={grow?'db-grow-drawer':'db-drawer'} ref={m.host} style={grow?{'--motion-scale-from':0,'--motion-scale-origin':'right center'}:undefined} direction="to-left" containerSize="small" onCancel={m.cancel} header={<DBDrawerHeader data-motion-content-group="" text="Settings" closeButtonText="Close panel"/>} footer={<DBDrawerFooter data-motion-content-group=""><DBButton variant="filled" onClick={m.close}>Done</DBButton></DBDrawerFooter>}><p>Your settings.</p></DBDrawer></Example>;
 }
-function NotificationExample({message}){
-  const m=useDbMotion('notification','notification');useEffect(()=>{if(message)m.open();},[message]);
-  return <Example name="Notification" component="DBNotification" state={m.state}><DBButton id="db-notification-trigger" ref={m.trigger} variant="filled" onClick={m.toggle}>Notification zeigen</DBButton>{createPortal(<div className="notification-anchor" hidden={m.state==='closed'}><DBNotification {...common} id="db-notification" ref={m.host} variant="overlay" semantic="successful" headline="Gespeichert" closeable closeButtonText="Notification schließen" onClose={m.close}>{message?.text||'Deine Änderungen wurden gespeichert.'}</DBNotification></div>,document.body)}</Example>;
+function NotificationExample({message,grow=false}){
+  const m=useDbMotion(grow?'grow-notification':'notification','notification',false,grow);useEffect(()=>{if(message)m.open();},[message]);
+  return <Example name="Grow" component="DBNotification" state={m.state}><DBButton id={grow?'db-grow-notification-trigger':'db-notification-trigger'} ref={m.trigger} variant="filled" onClick={m.toggle}>Show notification</DBButton>{createPortal(<div className="notification-anchor" hidden={m.state==='closed'}><DBNotification {...common} id={grow?'db-grow-notification':'db-notification'} ref={m.host} style={grow?{'--motion-scale-from':0,'--motion-scale-origin':'right top'}:undefined} variant="overlay" semantic="successful" headline="Saved" closeable closeButtonText="Close notification" onClose={m.close}>{message?.text||'Your changes have been saved.'}</DBNotification></div>,document.body)}</Example>;
 }
+function RenameInput(props){return <DBInput label="Name" showLabel={false} placeholder="Enter a name" {...props}/>;}
 function Button(props){return <DBButton variant="filled" {...props}/>;}
 function App(){
   const [message,setMessage]=useState(null);const notify=text=>setMessage({text});
   useLayoutEffect(()=>connectPlayground([
-    {name:'morph',label:'Morph',trigger:'db-popover-trigger',get:()=>window.dbMotionDemo?.popover},
-    {name:'liquid',label:'Liquid Morph',trigger:'db-liquid-popover-trigger',get:()=>window.dbMotionDemo?.liquidPopover},
+    {name:'morph',label:'Grow',trigger:'db-popover-trigger',get:()=>window.dbMotionDemo?.popover},
+    {name:'liquid',label:'Extract',trigger:'db-liquid-popover-trigger',get:()=>window.dbMotionDemo?.liquidPopover},
+    {name:'replacingLiquid',label:'Morph',trigger:'db-replace-popover-trigger',get:()=>window.dbMotionDemo?.replacePopover},
+    {name:'splitMenu',label:'Morph · Split button',trigger:'db-split-popover-trigger',get:()=>window.dbMotionDemo?.splitPopover},
     {name:'dialog',label:'Dialog',trigger:'db-dialog-trigger',get:()=>window.dbMotionDemo?.dialog},
-    {name:'drawer',label:'Drawer',trigger:'db-drawer-trigger',get:()=>window.dbMotionDemo?.drawer},
-    {name:'notification',label:'Notification',trigger:'db-notification-trigger',get:()=>window.dbMotionDemo?.notification},
-    {name:'trigger',label:'Trigger → Fläche',get:()=>window.miniTrigger},
-    {name:'navigation',label:'Navigation',get:()=>window.miniNavigation},
+    {name:'drawer',label:'Side panel',trigger:'db-grow-drawer-trigger',get:()=>window.dbMotionDemo?.['grow-drawer']},
+    {name:'notification',label:'Notification',trigger:'db-grow-notification-trigger',get:()=>window.dbMotionDemo?.['grow-notification']},
+    {name:'panelLeft',label:'Grid · Left panel',get:()=>window.panelGridMotion?.left},
+    {name:'panelRight',label:'Grid · Right panel',get:()=>window.panelGridMotion?.right},
+    {name:'trigger',label:'Rename',get:()=>window.miniTrigger},
+    {name:'navigation',label:'Submenu',get:()=>window.miniNavigation},
+    {name:'text',label:'Text block',get:()=>window.contentMotionDemo?.text},
+    {name:'image',label:'Image block',get:()=>window.contentMotionDemo?.image},
+    {name:'page',label:'Content page',get:()=>window.contentMotionDemo?.page},
   ]),[]);
-  return <main className="mini-grid"><Menu notify={notify}/><Menu liquid notify={notify}/><DialogExample/><DrawerExample/><NotificationExample message={message}/><TriggerExample Button={Button} Surface={DBCard}/><NavigationExample Button={Button}/></main>;
+  return <main className="mini-grid"><Menu notify={notify}/><Menu liquid notify={notify}/><Menu liquid replace notify={notify}/><Menu liquid replace split notify={notify}/><DialogExample/><DrawerExample grow/><NotificationExample grow message={message}/><PanelGridExample Button={Button} Surface={DBCard}/><RenameExample Button={Button} Input={RenameInput}/><NavigationExample Button={Button}/><ContentExamples Button={Button} Surface={DBCard}/></main>;
 }
 if(window.parent===window)location.replace('../?components=db');else createRoot(document.getElementById('root')).render(<App/>);

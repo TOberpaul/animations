@@ -17,12 +17,13 @@ export function createPlaygroundController(canvas,{settings,animation,progress,o
  }
  function seek(){
   const value=progress()/100;
-  animations.forEach(a=>{a.pause();a.currentTime=value*Number(a.effect.getTiming().duration);});
-  status(animations.length?`${Math.round(value*Number(animations[0].effect.getTiming().duration))} ms`:'Slider ziehen, um einen Frame anzusehen.');
+  const total=Math.max(0,...animations.map(a=>Number(a.effect.getTiming().duration)));
+  animations.forEach(a=>{a.pause();a.currentTime=value*total;});
+  status(animations.length?`${Math.round(value*total)} ms`:'Drag the slider to preview a frame.');
  }
  async function prepare(){
   if(preparing||settings().reduced||disposed)return;
-  if(!api()){status('Komponenten werden geladen …');return;}
+  if(!api()){status('Loading components…');return;}
   const version=++epoch;preparing=true;api().previewing=true;
   try{
    await finishPrevious(version);if(version!==epoch||disposed)return;
@@ -38,31 +39,30 @@ export function createPlaygroundController(canvas,{settings,animation,progress,o
    if(item?.motion)(item.request??item.motion.open)(true);
    else{
     const trigger=win.document.getElementById(entry.trigger);
-    if(entry.pointer){trigger?.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,button:0,pointerType:'mouse',isPrimary:true}));trigger?.dispatchEvent(new win.PointerEvent('pointerup',{bubbles:true,button:0,pointerType:'mouse',isPrimary:true}));}
-    else trigger?.click();
+    trigger?.click();
    }
    for(let i=0;i<60&&version===epoch&&!disposed;i++){
     item=entry.get();animations=item?.content?effects(item):[];
     if(animations.length){active=item;seek();return;}await frame();
    }
-   if(version===epoch)status('Keine Animation verfügbar.');
+   if(version===epoch)status('No animation available.');
   }finally{if(version===epoch)preparing=false;}
  }
- function apply(){api()?.apply(settings());if(settings().reduced)status('Reduzierte Bewegung aktiv.');}
- const ready=()=>{apply();status(settings().reduced?'Reduzierte Bewegung aktiv.':'Slider ziehen, um einen Frame anzusehen.');};
- const interact=()=>{epoch++;preparing=false;animations.forEach(a=>{if(a.playState==='paused')a.play();});active=undefined;animations=[];status('Slider ziehen, um einen Frame anzusehen.');};
+ function apply(){api()?.apply(settings());if(settings().reduced)status('Reduced motion is enabled.');}
+ const ready=()=>{apply();status(settings().reduced?'Reduced motion is enabled.':'Drag the slider to preview a frame.');};
+ const interact=()=>{epoch++;preparing=false;animations.forEach(a=>{if(a.playState==='paused')a.play();});active=undefined;animations=[];status('Drag the slider to preview a frame.');};
  window.addEventListener('motion-playground-ready',ready);window.addEventListener('motion-playground-interaction',interact);
  return {
   apply,
   scrub(){if(animations.length&&animations.every(a=>a.playState!=='idle'))seek();else void prepare();},
   selectAnimation(){epoch++;preparing=false;onProgress(0);void prepare();},
   async settingsCommitted(){
-   apply();if(!active){if(!settings().reduced)status('Slider ziehen, um einen Frame anzusehen.');return;}
+   apply();if(!active){if(!settings().reduced)status('Drag the slider to preview a frame.');return;}
    if(settings().reduced){const version=++epoch;preparing=false;await finishPrevious(version);if(version!==epoch)return;active=undefined;animations=[];}
    else{epoch++;preparing=false;void prepare();}
   },
   switchProvider(value){
-   epoch++;preparing=false;active=undefined;animations=[];onProgress(0);status('Komponenten werden geladen …');
+   epoch++;preparing=false;active=undefined;animations=[];onProgress(0);status('Loading components…');
    canvas.src=`./${value==='db'?'db-react':'shadcn'}/?embed=1`;
    const url=new URL(location.href);url.searchParams.set('components',value);history.replaceState(null,'',url);
   },

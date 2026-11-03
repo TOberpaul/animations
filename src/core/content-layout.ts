@@ -2,7 +2,7 @@ import type { Track } from './animation.js';
 
 /** Hold the existing inner layout in its final position while the surface
  * resizes around it. Measurements happen once; reversal reuses native tracks. */
-export function fixedContentTracks(content:HTMLElement,frames:Keyframe[]):Track[] {
+export function fixedContentTracks(content:HTMLElement,frames:Keyframe[],pseudoElements:ReadonlyArray<'::before'|'::after'>=[]):Track[] {
   const px=(value:string)=>parseFloat(value)||0;
   const borderBox=(style:CSSStyleDeclaration,axis:'width'|'height')=>px(style[axis])+(style.boxSizing==='border-box'?0:axis==='width'
     ? px(style.paddingLeft)+px(style.paddingRight)+px(style.borderLeftWidth)+px(style.borderRightWidth)
@@ -28,33 +28,46 @@ export function fixedContentTracks(content:HTMLElement,frames:Keyframe[]):Track[
       left:(rect.left-final.left)/sx-Math.min(...points.map(p=>p.x))-borderLeft,
       top:(rect.top-final.top)/sy-Math.min(...points.map(p=>p.y))-borderTop}];
   });
-  if(!snapshots.length)return [];
+  const pseudos=Array.from(new Set(pseudoElements)).flatMap(pseudoElement=>{
+    const css=getComputedStyle(content,pseudoElement);
+    if(css.display==='none'||css.content==='none'||css.content==='normal')return [];
+    return [{pseudoElement,transform:css.transform==='none'?'':css.transform}];
+  });
+  if(!snapshots.length&&!pseudos.length)return [];
   // A positioned surface provides the containing block for its existing nodes.
   if(style.position==='static')frames.forEach(frame=>{frame.position='relative';});
   const properties=['width','height','transform','min-width','min-height','max-width','max-height','overflow','position',
     'padding-top','padding-bottom','padding-left','padding-right','border-top-width','border-bottom-width','border-left-width','border-right-width'];
   const saved=properties.map(name=>[name,content.style.getPropertyValue(name),content.style.getPropertyPriority(name)]);
-  let collapsed:DOMRect;
+  const positions:Array<{dx:number;dy:number}>=[];
   try {
-    const first=frames[0];
-    for(const name of properties){
-      const key=name.replace(/-([a-z])/g,(_,letter:string)=>letter.toUpperCase());
-      if(first[key]!==undefined)content.style.setProperty(name,String(first[key]));
+    // Snapshot the small, finite set of poses once. An overshoot is not a
+    // linear extrapolation of the collapsed pose on both axes.
+    for(const frame of frames){
+      for(const name of properties){
+        const key=name.replace(/-([a-z])/g,(_,letter:string)=>letter.toUpperCase());
+        if(frame[key]!==undefined)content.style.setProperty(name,String(frame[key]));
+      }
+      const rect=content.getBoundingClientRect();
+      positions.push({dx:(final.left-rect.left)/sx,dy:(final.top-rect.top)/sy});
     }
-    collapsed=content.getBoundingClientRect();
   }finally{
     for(const [name,value,priority]of saved){if(value)content.style.setProperty(name,value,priority);else content.style.removeProperty(name);}
   }
-  const first=frames[0],last=frames[frames.length-1];
-  const axis=Math.abs(px(String(last.width))-px(String(first.width)))>1e-6?'width':'height';
-  const from=px(String(first[axis])),to=px(String(last[axis]));
-  const dx=(final.left-collapsed!.left)/sx,dy=(final.top-collapsed!.top)/sy;
-  return snapshots.map(snapshot=>({element:snapshot.element,easing:'linear',frames:frames.map(frame=>{
-    const progress=to===from?1:(px(String(frame[axis]))-from)/(to-from);
-    return {offset:frame.offset,easing:frame.easing,position:'absolute',margin:'0px',
+  const tracks:Track[]=snapshots.map(snapshot=>({element:snapshot.element,easing:'linear',frames:frames.map((frame,index)=>{
+    const {dx,dy}=positions[index];
+    // An absolutely positioned grid item otherwise uses its named grid area
+    // as the containing block, adding that area's offset a second time.
+    return {offset:frame.offset,easing:frame.easing,position:'absolute',gridArea:'auto',margin:'0px',
       right:'auto',bottom:'auto',boxSizing:'border-box',minWidth:'0px',minHeight:'0px',maxWidth:'none',maxHeight:'none',
       width:`${snapshot.width}px`,height:`${snapshot.height}px`,
-      left:`${snapshot.left+dx*(1-progress)+borderLeft-(frame.borderLeftWidth===undefined?borderLeft:px(String(frame.borderLeftWidth)))}px`,
-      top:`${snapshot.top+dy*(1-progress)+borderTop-(frame.borderTopWidth===undefined?borderTop:px(String(frame.borderTopWidth)))}px`};
+      left:`${snapshot.left+dx+borderLeft-(frame.borderLeftWidth===undefined?borderLeft:px(String(frame.borderLeftWidth)))}px`,
+      top:`${snapshot.top+dy+borderTop-(frame.borderTopWidth===undefined?borderTop:px(String(frame.borderTopWidth)))}px`};
   })}));
+  // Generated icons are content too. Counter only the changing surface origin,
+  // leaving their component-owned grid placement and the slide itself intact.
+  for(const {pseudoElement,transform} of pseudos)tracks.push({element:content,pseudoElement,easing:'linear',frames:frames.map((frame,index)=>({
+    offset:frame.offset,easing:frame.easing,transform:`${transform} translate(${positions[index].dx}px,${positions[index].dy}px)`
+  }))});
+  return tracks;
 }

@@ -1,47 +1,73 @@
 import React,{useLayoutEffect,useRef,useState} from 'react';
 import {createLiquidMorphTransition,createSlideTransition} from '../dist/index.js';
 
-export function Example({name,component,state,children}){
-  return <section className="mini-example"><header><h2>{name}</h2><output>{state}</output></header><div className="mini-stage">{children}</div><small>{component}</small></section>;
+export function Chevron(){return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>;}
+
+export function Example({name,component,state,children,className=''}){
+  return <section className={`mini-example ${className}`}><header><h2>{name}</h2><output>{state}</output></header><div className="mini-stage">{children}</div><small>{component}</small></section>;
 }
 
-export function TriggerExample({Button,Surface}){
-  const surface=useRef(null),label=useRef(null),body=useRef(null),motion=useRef(null);
-  const [state,setState]=useState('closed');
+export function RenameExample({Button,Input}){
+  const surface=useRef(null),trigger=useRef(null),motion=useRef(null);
+  const [state,setState]=useState('closed'),[name,setName]=useState('Untitled project'),[draft,setDraft]=useState('Untitled project');
   useLayoutEffect(()=>{
-    const element=surface.current;
-    const controller=createLiquidMorphTransition({trigger:element,content:element,reveal:body.current,onStateChange(next){
+    const host=surface.current,input=host.querySelector('input'),nativeSurface=input.closest('.db-input'),element=host,button=trigger.current;
+    let inputPrepared=false;
+    const originals=[host,input,...(nativeSurface?[nativeSurface]:[])].map(node=>[node,node.getAttribute('style')]);
+    function restoreInput(){
+      if(!inputPrepared)return;
+      inputPrepared=false;
+      for(const [node,style] of originals){if(style===null)node.removeAttribute('style');else node.setAttribute('style',style);}
+      // Restore the native material immediately, without starting its CSS color transition.
+      const transition=input.style.transition;
+      input.style.transition='none';getComputedStyle(input).borderColor;
+      if(transition)input.style.transition=transition;else input.style.removeProperty('transition');
+    }
+    function prepareInput(){
+      if(inputPrepared)return;
+      const style=getComputedStyle(input),height=input.getBoundingClientRect().height;
+      Object.assign(host.style,{backgroundColor:style.backgroundColor,borderColor:style.borderColor,borderStyle:style.borderStyle,borderWidth:style.borderWidth,borderRadius:style.borderRadius,boxShadow:style.boxShadow,boxSizing:'border-box',height:height+'px'});
+      Object.assign(input.style,{height:'100%',borderWidth:'0px',borderColor:'transparent',backgroundColor:'transparent',boxShadow:'none',transition:'none'});
+      if(nativeSurface)nativeSurface.style.height='100%';
+      inputPrepared=true;
+    }
+    element.inert=true;
+    const controller=createLiquidMorphTransition({trigger:button,content:element,replaceTrigger:true,reveal:[input],onStateChange(next){
       if(next==='destroyed')return;
-      const expanded=next!=='closed';element.dataset.expanded=String(expanded);
-      element.setAttribute('role',expanded?'region':'button');element.setAttribute('aria-expanded',String(expanded));element.tabIndex=expanded?-1:0;
-      label.current.hidden=expanded;body.current.hidden=!expanded;setState(next);
-      if(!window.motionPlayground?.previewing){if(next==='open')body.current.querySelector('button')?.focus({preventScroll:true});if(next==='closed')element.focus({preventScroll:true});}
+      const expanded=next!=='closed';
+      host.hidden=!expanded;element.inert=!expanded;
+      if(next==='opening'||next==='closing')prepareInput();else restoreInput();
+      button.style.visibility=expanded?'hidden':'';button.inert=expanded;
+      button.setAttribute('aria-expanded',String(expanded));setState(next);
+      if(!window.motionPlayground?.previewing){if(next==='closed')button.focus({preventScroll:true});}
     }});
-    const release=()=>controller.release();
-    window.addEventListener('pointerup',release,true);window.addEventListener('pointercancel',release,true);window.addEventListener('blur',release);
-    motion.current=controller;window.miniTrigger={motion:controller,content:element};
-    return()=>{window.removeEventListener('pointerup',release,true);window.removeEventListener('pointercancel',release,true);window.removeEventListener('blur',release);controller.destroy();delete window.miniTrigger;};
+    motion.current=controller;window.miniTrigger={motion:controller,content:element,trigger:button};
+    return()=>{controller.destroy();restoreInput();delete window.miniTrigger;};
   },[]);
-  return <Example name="Trigger → Fläche" component="Liquid · gleicher Trigger und Target" state={state}><div className="trigger-slot">
-    <Surface ref={surface} className="trigger-surface" data-expanded="false" role="button" aria-expanded="false" aria-label="Notiz bearbeiten" tabIndex={0}
-      onPointerDown={event=>{if(event.button===0&&!body.current.contains(event.target)&&motion.current.state==='closed'){motion.current.press();motion.current.open();}}}
-      onClick={event=>{
-        // A close button can settle synchronously with reduced motion. Its
-        // bubbling click must not reopen the surface as a trigger click.
-        if(!body.current.contains(event.target)&&motion.current.state==='closed')motion.current.open();
-      }}
-      onKeyDown={e=>{if(e.key==='Escape')motion.current.close();else if(e.target===e.currentTarget&&['Enter',' '].includes(e.key)){e.preventDefault();motion.current.toggle();}}}>
-      <span ref={label} className="trigger-label">Notiz bearbeiten</span><div ref={body} hidden className="trigger-body"><p>Eine neue Notiz.</p><div className="mini-actions"><Button onClick={()=>motion.current.close()}>Zurück</Button><Button onClick={()=>motion.current.close()}>Speichern</Button></div></div>
-    </Surface></div></Example>;
+  useLayoutEffect(()=>{
+    if(state==='open'&&!window.motionPlayground?.previewing){const input=surface.current.querySelector('input');input?.focus({preventScroll:true});input?.select();}
+  },[state]);
+  function open(){
+    if(motion.current.state!=='closed')return;
+    setDraft(name);motion.current.open();
+  }
+  function save(event){event.preventDefault();const value=draft.trim();if(!value)return;setName(value);motion.current.close();}
+  return <Example name="Morph" component="Rename · Button → Input" state={state}><div className="trigger-slot">
+    <Button id="rename-trigger" ref={trigger} aria-expanded="false" aria-controls="rename-editor"
+      onClick={()=>open()}>{name}</Button>
+    <form id="rename-editor" ref={surface} className="rename-surface" hidden onSubmit={save}
+      onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();motion.current.close();}}}>
+      <Input id="rename-input" aria-label="Name" value={draft} onChange={event=>setDraft(event.target.value)} autoComplete="off"/>
+    </form></div></Example>;
 }
 
 export function NavigationExample({Button}){
   const pane=useRef(null),first=useRef(null),strip=useRef(null),motion=useRef(null);const [state,setState]=useState('closed');
   useLayoutEffect(()=>{
     pane.current.inert=true;
-    const controller=createSlideTransition({content:strip.current,side:'left',mode:'shift',onStateChange(next){if(next==='destroyed')return;setState(next);strip.current.dataset.open=String(next==='open');pane.current.inert=next==='closed';first.current.inert=next!=='closed';if(!window.motionPlayground?.previewing&&(next==='open'||next==='closed'))(next==='open'?pane:first).current.querySelector('button')?.focus({preventScroll:true});}});
+    const controller=createSlideTransition({content:strip.current,side:'left',mode:'shift',reveal:pane.current,outgoing:first.current,onStateChange(next){if(next==='destroyed')return;setState(next);strip.current.dataset.open=String(next==='open');pane.current.inert=next==='closed';first.current.inert=next!=='closed';if(!window.motionPlayground?.previewing&&(next==='open'||next==='closed'))(next==='open'?pane:first).current.querySelector('button')?.focus({preventScroll:true});}});
     motion.current=controller;window.miniNavigation={motion:controller,content:strip.current};
     return()=>{controller.destroy();delete window.miniNavigation;};
   },[]);
-  return <Example name="Navigation" component="Slide · zwei Ebenen" state={state}><div className="mini-navigation" onKeyDown={e=>{if(e.key==='Escape')motion.current.close();}}><div className="mini-nav-strip" ref={strip} data-open="false"><div className="mini-nav-level" ref={first}><Button onClick={()=>motion.current.open()}>Foundation →</Button></div><div className="mini-nav-level" ref={pane}><Button onClick={()=>motion.current.close()}>← Zurück</Button><span>Farben · Typografie</span></div></div></div></Example>;
+  return <Example name="Slide" component="Submenu · two levels" state={state}><div className="mini-navigation" onKeyDown={e=>{if(e.key==='Escape')motion.current.close();}}><div className="mini-nav-strip" ref={strip} data-open="false"><div className="mini-nav-level" ref={first}><Button onClick={()=>motion.current.open()}>Foundation</Button></div><div className="mini-nav-level" ref={pane}><Button onClick={()=>motion.current.close()}>Back</Button><span>Colors · Typography</span></div></div></div></Example>;
 }
