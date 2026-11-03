@@ -9,17 +9,18 @@ import {Sheet,SheetTrigger,SheetContent,SheetHeader,SheetTitle,SheetDescription,
 import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem} from './components/ui/dropdown-menu';
 import {Toast,ToastProvider,ToastViewport,ToastTitle,ToastDescription,ToastClose} from './components/ui/toast';
 import {useMotionOverlay} from './use-motion-overlay';
-import {Example,RenameExample,NavigationExample,Chevron} from '../mini-examples.jsx';
+import {Example,RenameExample,NavigationExample,CascadingPopover,Chevron} from '../mini-examples.jsx';
 import {PanelGridExample} from '../panel-grid.jsx';
 import {ContentExamples} from '../content-examples.jsx';
 import {connectPlayground} from '../provider-bridge.js';
 function Button(props){return <BaseButton variant="secondary" {...props}/>;}
+function IconButton(props){return <Button size="icon" {...props}/>;}
 function Menu({liquid=false,replace=false,split=false,notify}){
  const id=split?'shadcn-split-menu':replace?'shadcn-replace-menu':liquid?'shadcn-liquid-menu':'shadcn-menu';
  const m=useMotionOverlay(split?'splitMenu':replace?'replaceMenu':liquid?'liquidMenu':'menu','menu',liquid,false,replace);
  const [overlap,setOverlap]=useState(0);
  useLayoutEffect(()=>{if(replace&&m.present&&m.trigger.current)setOverlap(m.trigger.current.getBoundingClientRect().height);},[replace,m.present]);
- return <Example name={replace?'Morph':liquid?'Extract':'Grow'} component={split?'Button group · Main + secondary actions · DropdownMenu':'DropdownMenu · Button'} state={m.state}><DropdownMenu open={m.present} onOpenChange={m.request} modal={false}><div className={split?'split-button-group':undefined} role={split?'group':undefined} aria-label={split?'Save actions':undefined}>{split&&<Button onClick={()=>notify('Saved')}>Save</Button>}<DropdownMenuTrigger asChild><Button aria-label={split?'More save actions':undefined} id={id+'-trigger'} ref={m.trigger} variant="secondary" onPointerDown={event=>event.preventDefault()} onClick={m.toggle}>{split?<Chevron/>:'Actions'}</Button></DropdownMenuTrigger></div><DropdownMenuContent id={id} ref={m.contentRef} data-motion-surface="" onInteractOutside={event=>{if(m.trigger.current?.contains(event.target))event.preventDefault();}} onOpenAutoFocus={e=>{if(window.motionPlayground?.previewing)e.preventDefault();}} onCloseAutoFocus={e=>{if(window.motionPlayground?.previewing)e.preventDefault();}} side="bottom" align="end" sideOffset={replace?-overlap:10} avoidCollisions={!replace} className="w-44">{(split?['Save as draft','Duplicate','Export']:['Edit','Duplicate','Delete']).map(label=><DropdownMenuItem key={label} onSelect={()=>notify(label)}>{label}</DropdownMenuItem>)}</DropdownMenuContent></DropdownMenu></Example>;
+ return <Example name={replace?'Morph':liquid?'Extract':'Grow'} component={split?'Button group · Main + secondary actions · DropdownMenu':'DropdownMenu · Button'} state={m.state}><DropdownMenu open={m.present} onOpenChange={m.request} modal={false}><div className={split?'split-button-group':undefined} role={split?'group':undefined} aria-label={split?'Save actions':undefined}>{split&&<Button onClick={()=>notify('Saved')}>Save</Button>}<DropdownMenuTrigger asChild><Button size={split?"icon":undefined} aria-label={split?'More save actions':undefined} id={id+'-trigger'} ref={m.trigger} variant="secondary" onPointerDown={event=>event.preventDefault()} onClick={m.toggle}>{split?<Chevron/>:'Actions'}</Button></DropdownMenuTrigger></div><DropdownMenuContent id={id} ref={m.contentRef} data-motion-surface="" onInteractOutside={event=>{if(m.trigger.current?.contains(event.target))event.preventDefault();}} onOpenAutoFocus={e=>{if(window.motionPlayground?.previewing)e.preventDefault();}} onCloseAutoFocus={e=>{if(window.motionPlayground?.previewing)e.preventDefault();}} side="bottom" align="end" sideOffset={replace?-overlap:10} avoidCollisions={!replace} className="w-44">{(split?['Save as draft','Duplicate','Export']:['Edit','Duplicate','Delete']).map(label=><DropdownMenuItem key={label} onSelect={()=>notify(label)}>{label}</DropdownMenuItem>)}</DropdownMenuContent></DropdownMenu></Example>;
 }
 function DialogExample(){
  const m=useMotionOverlay('dialog','dialog');
@@ -39,18 +40,19 @@ function App(){
   {name:'morph',label:'Grow',trigger:'shadcn-menu-trigger',get:()=>window.shadcnMotionDemo?.menu},
   {name:'liquid',label:'Extract',trigger:'shadcn-liquid-menu-trigger',get:()=>window.shadcnMotionDemo?.liquidMenu},
   {name:'replacingLiquid',label:'Morph',trigger:'shadcn-replace-menu-trigger',get:()=>window.shadcnMotionDemo?.replaceMenu},
-    {name:'splitMenu',label:'Morph · Split button',trigger:'shadcn-split-menu-trigger',get:()=>window.shadcnMotionDemo?.splitMenu},
+    {name:'splitMenu',label:'Grow · Split button',trigger:'shadcn-split-menu-trigger',get:()=>window.shadcnMotionDemo?.splitMenu},
     {name:'dialog',label:'Dialog',trigger:'shadcn-dialog-trigger',get:()=>window.shadcnMotionDemo?.dialog},
   {name:'drawer',label:'Side panel',trigger:'shadcn-grow-sheet-trigger',get:()=>window.shadcnMotionDemo?.['grow-sheet']},
     {name:'notification',label:'Notification',trigger:'shadcn-grow-notification-trigger',get:()=>window.shadcnMotionDemo?.['grow-notification']},
     {name:'panelLeft',label:'Grid · Left panel',get:()=>window.panelGridMotion?.left},
     {name:'panelRight',label:'Grid · Right panel',get:()=>window.panelGridMotion?.right},
     {name:'trigger',label:'Rename',get:()=>window.miniTrigger},
-  {name:'navigation',label:'Submenu',get:()=>window.miniNavigation},
+  {name:'search',label:'Search',get:()=>window.miniSearch},
+    {name:'navigation',label:'Submenu',get:()=>window.miniNavigation},
     {name:'text',label:'Text block',get:()=>window.contentMotionDemo?.text},
     {name:'image',label:'Image block',get:()=>window.contentMotionDemo?.image},
     {name:'page',label:'Content page',get:()=>window.contentMotionDemo?.page},
  ]),[]);
- return <main className="mini-grid"><Menu notify={notify}/><Menu liquid notify={notify}/><Menu liquid replace notify={notify}/><Menu liquid replace split notify={notify}/><DialogExample/><DrawerExample grow/><NotificationExample grow message={message}/><PanelGridExample Button={Button} Surface={Card}/><RenameExample Button={Button} Input={Input}/><NavigationExample Button={Button}/><ContentExamples Button={Button} Surface={Card}/></main>;
+ return <main className="mini-grid"><Menu notify={notify}/><Menu liquid notify={notify}/><Menu liquid replace notify={notify}/><Menu split notify={notify}/><DialogExample/><DrawerExample grow/><NotificationExample grow message={message}/><PanelGridExample Button={Button} Surface={Card}/><RenameExample Button={Button} Input={Input}/><RenameExample Button={IconButton} Input={Input} search/><NavigationExample Button={Button} BackButton={IconButton} Surface={Card}/><CascadingPopover Button={Button} Surface={Card}/><ContentExamples Button={Button} Surface={Card}/></main>;
 }
 if(window.parent===window)location.replace('../?components=shadcn');else createRoot(document.getElementById('root')).render(<App/>);

@@ -82,8 +82,10 @@ call `showModal()` / close at the appropriate lifecycle points.
 
 | Factory | Behavior | Required additions to shared options |
 | --- | --- | --- |
-| `createScaleTransition` | Grow from a configured origin | None; optional `axis`, `backdrop` |
-| `createMorphTransition` | Zero-depth reveal from a trigger-facing edge | `trigger` |
+| `createGrowTransition` | Grow from a configured origin or trigger edge | Optional `trigger`, `axis`, `backdrop` |
+| `createScaleTransition` | Origin-based Grow compatibility factory | Optional `axis`, `backdrop` |
+| `createExtractTransition` | Extract a new surface while retaining the trigger | `trigger` |
+| `createMorphTransition` | Transform the trigger into the target surface | `trigger` |
 | `createLiquidMorphTransition` | Source volume → encompassing surface → target | `trigger`; optional `replaceTrigger` |
 | `createSlideTransition` | Bounded translate3d entry or two-pane shift | Optional `side`, `mode`, `outgoing`, `backdrop` |
 | `createContentTransition` | Fixed slide + blur + fade | Optional `items`, `reveal`, `timing` |
@@ -113,30 +115,34 @@ backdrop presence; motion fades it through opening and closing.
 
 ### Grow, Extract and Morph naming
 
-The playground's names describe the visible behaviors. Existing factory names
-remain compatible, so do not infer the factory from the card title alone:
+Public factories, declarative markup and example titles use the same meanings:
 
-| Example | Factory / setting |
-| --- | --- |
-| Grow action menu | `createMorphTransition({trigger, content})` |
-| Grow dialog/panel/notification | `createScaleTransition(...)` |
-| Extract action menu | `createLiquidMorphTransition({trigger, content})` |
-| Morph action menu / rename / split button | `createLiquidMorphTransition({trigger, content, replaceTrigger: true})` |
+| Behavior | Factory | Markup |
+| --- | --- | --- |
+| Grow from a local origin | `createGrowTransition({content})` | `data-motion="grow"` |
+| Grow from the trigger edge | `createGrowTransition({trigger, content})` | `data-motion="grow" data-motion-trigger="#open"` |
+| Extract, source remains | `createExtractTransition({trigger, content})` | `data-motion="extract" data-motion-trigger="#open"` |
+| Morph, source becomes target | `createMorphTransition({trigger, content})` | `data-motion="morph" data-motion-trigger="#open"` |
+
+Migration: the earlier `createMorphTransition` name referred to trigger-edge Grow.
+Use `createGrowTransition` for that old behavior. `createMorphTransition` now
+means replacing Morph, consistent with the examples. The lower-level
+`createLiquidMorphTransition` remains available with an explicit
+`replaceTrigger` flag, and `createScaleTransition` remains an origin-Grow alias.
 
 Extract retains the original trigger. Replacing Morph snapshots its foreground,
 then crossfades that foreground into target content while one material surface
 moves between the geometries. The integration hides/inerts the real trigger
 until closed and restores it afterward. This avoids nested interactive controls.
 
-Liquid currently creates a temporary SVG path and inner border ring, without a
-gooey filter or connecting neck. It removes the temporary surface and foreground
+Liquid animates a temporary HTML surface with CSS dimensions, corners, background and borders. It removes the temporary surface and foreground
 copy at rest. The resting UI is the real HTML component. Trigger swelling is a
 phase of the click animation; there is no press/hold feature or press/release API.
 
 For the replacing menu, the component places the target at the trigger's
 upper-right corner so it expands left/down over the button. Positioning is not
-implemented by the transition. For split buttons, use only the chevron button as
-the source; the main action remains independent.
+implemented by the transition. The split-button menu uses trigger-edge Grow below the chevron, aligned at
+the right edge. Both buttons remain visible and the main action is independent.
 
 ### Material source and composite inputs
 
@@ -190,9 +196,9 @@ const transition = createMotion({
 
 | Attribute | Values / purpose |
 | --- | --- |
-| `data-motion` | `grow`, `morph`, `liquid`, `slide`, `content` |
-| Matching class instead | `motion-grow`, `motion-morph`, `motion-liquid`, `motion-slide`, `motion-content` |
-| `data-motion-trigger` | Trigger selector, e.g. `#open`; needed by morph/liquid unless `trigger` is passed |
+| `data-motion` | `grow`, `extract`, `morph`, `slide`, `content` |
+| Matching class instead | `motion-grow`, `motion-extract`, `motion-morph`, `motion-slide`, `motion-content` |
+| `data-motion-trigger` | Trigger selector, e.g. `#open`; required for extract/morph unless `trigger` is passed; optional for trigger-edge Grow |
 | `data-motion-reveal` | Selector for inner reveal targets; default: direct HTML children |
 | `data-motion-axis` | Grow axis: `width` or `height` |
 | `data-motion-side` | Slide entry side |
@@ -200,9 +206,9 @@ const transition = createMotion({
 | `data-motion-replace-trigger` | Presence enables replacing Liquid |
 
 An explicit `data-motion` takes precedence over classes. Without it, use exactly
-one matching class. Declarative `morph` maps to the existing trigger-edge factory;
-for the playground's replacing Morph behavior use `data-motion="liquid"` with
-`data-motion-replace-trigger`. Recreate the controller to change behavior after
+one matching class. Declarative `morph` selects the replacing Morph factory directly.
+The old `liquid` / `motion-liquid` spelling remains a compatibility path; its
+`data-motion-replace-trigger` flag retains its original meaning. Recreate the controller to change behavior after
 initialization. Change CSS tokens for per-trip visual parameters.
 
 ## Content progression and ordering
@@ -338,7 +344,7 @@ before the `closed` callback if an exit animation is wanted.
 Examples use installed DB React and shadcn/Radix components in separate themed
 iframes, sharing one shadcn shell. The Code playground uses plain HTML and the
 actual library exports as `motion`; `window.transition` connects its preview
-buttons and frame slider. HTML/CSS/JavaScript edits reload the preview, with local
+buttons and frame slider. HTML edits reload the preview, with local
 draft persistence and inline error reporting. Exported HTML imports the running
 server's library URL; replace that with your hosted library URL for distribution.
 
@@ -352,3 +358,40 @@ Recent changes were checked with targeted Chromium visual/interaction checks.
 The repository also contains earlier automated tests; they were not run for
 this update. Generated builds and local visual-check scripts/screenshots are
 ignored. This library is a development package, not an npm-published release.
+
+## Source of truth
+
+- `src/behaviors.ts`: canonical names, content-effect policy and legacy-name
+  normalization. `getMotionKind(element)` is used by both `createMotion()` and
+  the sample component lifecycle. `motionBehaviors[kind].replacesTrigger`
+  describes whether that component must hide the original source.
+- `src/core/content-groups.ts`: content grouping, numeric order and pseudo-icon
+  participation. Examples do not maintain their own grouping algorithm.
+- `src/core/content-timing.ts`: bounded component windows and full-duration
+  per-item timelines, including start spacing.
+- `src/core/content-frames.ts`: the shared fade/blur recipe and optional Content
+  slide. Grow, Extract, Morph and Slide reveals do not add an independent slide.
+- `examples/motion-settings.js`: one shared mapping from playground controls to
+  CSS tokens, used by the provider canvas and the Code preview.
+
+The HTML editor loads a fixed preview adapter for component placement and presence, plus the library stylesheet. It no longer
+contains its own behavior-name lookup or an implicit card-specific sequence
+override. Known older shipped JavaScript starters are upgraded when restoring
+saved drafts; custom JavaScript is preserved. Explicit surface-first attributes
+remain supported for intentionally configured card sequences.
+
+If an Extract target overlaps the source, its temporary source foreground
+crossfades away instead of remaining painted over the target content. The real
+source is still retained; replacing Morph visibility remains component-owned.
+
+### Component integration details
+
+DB icon-only buttons use DBButton with the documented icon and noText props.
+The search input uses DBInput with type="search" and a Search label. Its
+wrapper and native magnifier reveal as a single group. shadcn icon-only
+buttons use the local Button size="icon" variant. The inline search starts
+empty and displays its placeholder until the user enters a query.
+
+The two-level Slide navigation uses the provider Card as its navigation
+surface. Cascading Grow uses a native HTML popover for the top layer, with
+separate provider Card surfaces for the branches.

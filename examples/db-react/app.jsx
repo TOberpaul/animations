@@ -3,7 +3,7 @@ import {createRoot} from 'react-dom/client';
 import {createPortal} from 'react-dom';
 import {DBButton,DBCard,DBInput,DBPopover,DBDialog,DBDialogHeader,DBDialogFooter,DBDrawer,DBDrawerHeader,DBDrawerFooter,DBNotification} from '@db-ux/react-core-components';
 import {useDbMotion} from './use-db-motion.js';
-import {Example,RenameExample,NavigationExample,Chevron} from '../mini-examples.jsx';
+import {Example,RenameExample,NavigationExample,CascadingPopover} from '../mini-examples.jsx';
 import {PanelGridExample} from '../panel-grid.jsx';
 import {ContentExamples} from '../content-examples.jsx';
 import {connectPlayground} from '../provider-bridge.js';
@@ -20,7 +20,7 @@ function Menu({liquid=false,replace=false,split=false,notify}){
     items[next]?.focus({preventScroll:true});
   }
   useEffect(()=>{const outside=e=>{if(!m.host.current?.contains(e.target))m.close();};document.addEventListener('pointerdown',outside);return()=>document.removeEventListener('pointerdown',outside);},[]);
-  const triggerButton=<DBButton id={id+'-trigger'} ref={m.trigger} variant="filled" aria-label={split?'More save actions':undefined} aria-haspopup="menu" aria-expanded={m.present} onClick={m.toggle}>{split?<Chevron/>:'Actions'}</DBButton>;
+  const triggerButton=<DBButton id={id+'-trigger'} ref={m.trigger} variant="filled" aria-label={split?'More save actions':undefined} aria-haspopup="menu" aria-expanded={m.present} onClick={m.toggle} icon={split?'chevron_down':undefined} noText={split||undefined} size={split?'medium':undefined} data-icon-variant={split?'default':undefined}>{split?'More save actions':'Actions'}</DBButton>;
   return <Example name={replace?'Morph':liquid?'Extract':'Grow'} component={split?'DBButton group · Main + secondary actions · DBPopover':'DBPopover · DBButton'} state={m.state}>
     <DBPopover {...common} id={id} ref={m.host} open={m.present} animation={false} className={replace?'action-menu-popover action-menu-replacing':'action-menu-popover'} forceAbsolute placement="bottom-end" gap={!replace} width="auto" onKeyDown={keys}
       trigger={split?<div className="split-button-group" role="group" aria-label="Save actions"><DBButton variant="filled" onClick={()=>notify('Saved')}>Save</DBButton>{triggerButton}</div>:triggerButton}>
@@ -40,26 +40,29 @@ function NotificationExample({message,grow=false}){
   const m=useDbMotion(grow?'grow-notification':'notification','notification',false,grow);useEffect(()=>{if(message)m.open();},[message]);
   return <Example name="Grow" component="DBNotification" state={m.state}><DBButton id={grow?'db-grow-notification-trigger':'db-notification-trigger'} ref={m.trigger} variant="filled" onClick={m.toggle}>Show notification</DBButton>{createPortal(<div className="notification-anchor" hidden={m.state==='closed'}><DBNotification {...common} id={grow?'db-grow-notification':'db-notification'} ref={m.host} style={grow?{'--motion-scale-from':0,'--motion-scale-origin':'right top'}:undefined} variant="overlay" semantic="successful" headline="Saved" closeable closeButtonText="Close notification" onClose={m.close}>{message?.text||'Your changes have been saved.'}</DBNotification></div>,document.body)}</Example>;
 }
-function RenameInput(props){return <DBInput label="Name" showLabel={false} placeholder="Enter a name" {...props}/>;}
+function RenameInput({type,placeholder,...props}){return <DBInput label={type==="search"?"Search":"Name"} showLabel={false} type={type} placeholder={placeholder??"Enter a name"} {...props}/>;}
 function Button(props){return <DBButton variant="filled" {...props}/>;}
+function BackButton({children,...props}){return <DBButton {...props} size="small" icon="arrow_left" noText data-icon-variant="default">Back</DBButton>;}
+function SearchButton({children, ...props}){return <DBButton variant="filled" size="medium" icon="magnifying_glass" noText data-icon-variant="default" {...props}>Open search</DBButton>; }
 function App(){
   const [message,setMessage]=useState(null);const notify=text=>setMessage({text});
   useLayoutEffect(()=>connectPlayground([
     {name:'morph',label:'Grow',trigger:'db-popover-trigger',get:()=>window.dbMotionDemo?.popover},
     {name:'liquid',label:'Extract',trigger:'db-liquid-popover-trigger',get:()=>window.dbMotionDemo?.liquidPopover},
     {name:'replacingLiquid',label:'Morph',trigger:'db-replace-popover-trigger',get:()=>window.dbMotionDemo?.replacePopover},
-    {name:'splitMenu',label:'Morph · Split button',trigger:'db-split-popover-trigger',get:()=>window.dbMotionDemo?.splitPopover},
+    {name:'splitMenu',label:'Grow · Split button',trigger:'db-split-popover-trigger',get:()=>window.dbMotionDemo?.splitPopover},
     {name:'dialog',label:'Dialog',trigger:'db-dialog-trigger',get:()=>window.dbMotionDemo?.dialog},
     {name:'drawer',label:'Side panel',trigger:'db-grow-drawer-trigger',get:()=>window.dbMotionDemo?.['grow-drawer']},
     {name:'notification',label:'Notification',trigger:'db-grow-notification-trigger',get:()=>window.dbMotionDemo?.['grow-notification']},
     {name:'panelLeft',label:'Grid · Left panel',get:()=>window.panelGridMotion?.left},
     {name:'panelRight',label:'Grid · Right panel',get:()=>window.panelGridMotion?.right},
     {name:'trigger',label:'Rename',get:()=>window.miniTrigger},
+    {name:'search',label:'Search',get:()=>window.miniSearch},
     {name:'navigation',label:'Submenu',get:()=>window.miniNavigation},
     {name:'text',label:'Text block',get:()=>window.contentMotionDemo?.text},
     {name:'image',label:'Image block',get:()=>window.contentMotionDemo?.image},
     {name:'page',label:'Content page',get:()=>window.contentMotionDemo?.page},
   ]),[]);
-  return <main className="mini-grid"><Menu notify={notify}/><Menu liquid notify={notify}/><Menu liquid replace notify={notify}/><Menu liquid replace split notify={notify}/><DialogExample/><DrawerExample grow/><NotificationExample grow message={message}/><PanelGridExample Button={Button} Surface={DBCard}/><RenameExample Button={Button} Input={RenameInput}/><NavigationExample Button={Button}/><ContentExamples Button={Button} Surface={DBCard}/></main>;
+  return <main className="mini-grid"><Menu notify={notify}/><Menu liquid notify={notify}/><Menu liquid replace notify={notify}/><Menu split notify={notify}/><DialogExample/><DrawerExample grow/><NotificationExample grow message={message}/><PanelGridExample Button={Button} Surface={DBCard}/><RenameExample Button={Button} Input={RenameInput}/><RenameExample Button={SearchButton} Input={RenameInput} search/><NavigationExample Button={Button} BackButton={BackButton} Surface={DBCard}/><CascadingPopover Button={Button} Surface={DBCard}/><ContentExamples Button={Button} Surface={DBCard}/></main>;
 }
 if(window.parent===window)location.replace('../?components=db');else createRoot(document.getElementById('root')).render(<App/>);

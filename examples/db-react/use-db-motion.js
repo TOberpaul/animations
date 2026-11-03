@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { handleFixedPopover, syncDialogOpenState } from '@db-ux/react-core-components';
-import { createMorphTransition, createLiquidMorphTransition, createSlideTransition, createScaleTransition } from '../../dist/index.js';
+import { createGrowTransition, createExtractTransition, createMorphTransition, createSlideTransition } from '../../dist/index.js';
 
 // Release competing CSS effects through WAAPI, without rewriting DB styles.
 function settleDbEffects(root) {
@@ -57,8 +57,8 @@ export function useDbMotion(name,kind,liquid=false,grow=false,replaceTrigger=fal
       }
       if(next==='closed'&&kind!=='notification')trigger.current?.focus({preventScroll:true});
     }};
-    const raw=kind==='popover'?(liquid?createLiquidMorphTransition:createMorphTransition)({...options,trigger:trigger.current,replaceTrigger})
-      :grow?createScaleTransition({...options,axis:kind==='drawer'?'width':undefined,backdrop:kind==='drawer'?'native':undefined}):kind==='drawer'||kind==='notification'?createSlideTransition({...options,side:'right',backdrop:kind==='drawer'?'native':undefined}):createScaleTransition({...options,backdrop:'native'});
+    const raw=kind==='popover'?(replaceTrigger?createMorphTransition:liquid?createExtractTransition:createGrowTransition)({...options,trigger:trigger.current,replaceTrigger})
+      :grow?createGrowTransition({...options,axis:kind==='drawer'?'width':undefined,backdrop:kind==='drawer'?'native':undefined}):kind==='drawer'||kind==='notification'?createSlideTransition({...options,side:'right',backdrop:kind==='drawer'?'native':undefined}):createGrowTransition({...options,backdrop:'native'});
     function open(){
       if(disposed||desired)return;
       desired=true;

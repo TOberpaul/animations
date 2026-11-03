@@ -1,7 +1,7 @@
 import { createTransition, type Track } from '../core/animation.js';
 import { overshootToken, numberToken, token } from '../core/tokens.js';
 import type { MotionState, Options, Transition } from '../core/lifecycle.js';
-import { borderShape, componentCorners, roundedShape } from '../core/rounded-shape.js';
+import { componentCorners } from '../core/rounded-shape.js';
 import { growthAnchor, growthInsets } from '../core/geometry.js';
 export interface LiquidMorphOptions extends Options {
   /** Distinct node: retain the source. Same node as content: become the target.
@@ -13,7 +13,6 @@ export interface LiquidMorphOptions extends Options {
   replaceTrigger?: boolean;
 }
 export type LiquidMorphTransition = Transition;
-const ns = 'http://www.w3.org/2000/svg';
 
 function copyTrigger(trigger:HTMLElement):HTMLElement {
   const clone=trigger.cloneNode(true) as HTMLElement;
@@ -49,7 +48,7 @@ export function createLiquidMorphTransition(options: LiquidMorphOptions): Liquid
   if(replacesTrigger&&options.initiallyOpen)throw new Error('A replacing liquid morph must initialize in its closed layout.');
   let previous:MotionState=options.initiallyOpen?'open':'closed';
   let closed: {rect:DOMRect; background:string; border:string; borders:string[]; copy:HTMLElement} | undefined;
-  let overlay: SVGSVGElement | undefined;
+  let overlay: HTMLDivElement | undefined;
   let triggerCopy: HTMLElement | undefined;
   let hostStyles: Array<[string,string,string]> | undefined;
   const remove = () => {
@@ -64,7 +63,7 @@ export function createLiquidMorphTransition(options: LiquidMorphOptions): Liquid
   const reveal = options.reveal ? (Array.isArray(options.reveal) ? options.reveal : [options.reveal]) : Array.from(options.content.children).filter((child): child is HTMLElement => child instanceof HTMLElement);
   const raw = createTransition({ ...options,
     // Existing HTML children are the default reveal targets; the decorative
-    // SVG is inserted later and never participates in the content fade.
+    // HTML surface is inserted later and never participates in the content fade.
     reveal,
     onStateChange(state) {
     if(replacesTrigger&&state==='opening'&&previous==='closed'){
@@ -120,19 +119,15 @@ export function createLiquidMorphTransition(options: LiquidMorphOptions): Liquid
     const position = style.position;
     content.style.isolation = 'isolate';
     if (position === 'static') content.style.position = 'relative';
-    const element = <K extends keyof SVGElementTagNameMap>(name: K, attrs: Record<string,string> = {}) => {
-      const node = document.createElementNS(ns, name);
-      for (const [key,value] of Object.entries(attrs)) node.setAttribute(key,value);
-      return node;
-    };
-    overlay = element('svg', { 'aria-hidden':'true', focusable:'false', viewBox:`0 0 ${width} ${height}` });
-    overlay.style.cssText = `position:absolute;left:${-px(style.borderLeftWidth)}px;top:${-px(style.borderTopWidth)}px;width:${width}px;height:${height}px;overflow:visible;pointer-events:none;z-index:-1`;
-    // One clean surface: no goo filter, connecting neck or side extensions.
-    const surfaceGroup=element('g');
-    const surface=element('path',{fill:backgroundFrom});surfaceGroup.append(surface);
-    overlay.append(surfaceGroup); content.prepend(overlay);
-    const outline = [...borders,...sourceBorders].some(value=>value>0) ? element('path', {fill:borderFrom,'fill-rule':'evenodd'}) : undefined;
-    if (outline) surfaceGroup.append(outline);
+    const radius = corners.map(([x])=>x+'px').join(' ')+' / '+corners.map(([,y])=>y+'px').join(' ');
+    overlay = document.createElement('div');
+    overlay.setAttribute('aria-hidden','true');
+    overlay.setAttribute('data-motion-material','');
+    overlay.inert = true;
+    overlay.style.cssText = 'position:absolute;box-sizing:border-box;margin:0;padding:0;min-width:0;min-height:0;border-style:solid;pointer-events:none;z-index:-1';
+    overlay.style.borderRadius = radius;
+    content.prepend(overlay);
+    const insetLeft=px(style.borderLeftWidth),insetTop=px(style.borderTopWidth);
     // One fixed foreground copy: the original is retained for distinct nodes,
     // or its compact appearance is captured before the same node expands.
     triggerCopy = replacesTrigger ? closed!.copy.cloneNode(true) as HTMLElement : copyTrigger(trigger);
@@ -140,7 +135,7 @@ export function createLiquidMorphTransition(options: LiquidMorphOptions): Liquid
     content.append(triggerCopy);
     const revealStart=numberToken(content,'liquid-reveal-offset'),revealEnd=numberToken(content,'liquid-reveal-end');
     if(revealStart<0||revealStart>=revealEnd||revealEnd>1)throw new Error('Invalid liquid reveal offsets.');
-    const outlineFrames:Keyframe[]=[];
+    const clipFrames:Keyframe[]=[];
     // Include the exact volume/peak poses, so frame inspection
     // reach the configured percentage without resampling error.
     const offsets=Array.from(new Set([...Array.from({length:129},(_,index)=>index/128),...poses.map(pose=>pose[0]),revealStart,revealEnd])).sort((a,b)=>a-b);
@@ -162,20 +157,22 @@ export function createLiquidMorphTransition(options: LiquidMorphOptions): Liquid
       const [x,y,r,bottomEdge]=values,w=r-x,h=bottomEdge-y;
       const materialProgress = Math.min(1,at/end);
       const currentBorders = sourceBorders.map((value,edge)=>value+(borders[edge]-value)*materialProgress);
-      outlineFrames.push({offset:at,d:`path('${borderShape(x,y,w,h,corners,currentBorders)}')`});
-      return {offset:at,d:`path('${roundedShape(x,y,w,h,corners)}')`};
+      clipFrames.push({offset:at,clipPath:`inset(${y}px ${width-r}px ${height-bottomEdge}px ${x}px round ${radius})`});
+      return {offset:at,left:(x-insetLeft)+'px',top:(y-insetTop)+'px',width:w+'px',height:h+'px',
+        borderWidth:currentBorders.map(value=>value+'px').join(' ')};
     });
     const transparent = { backgroundColor:'transparent', borderColor:'transparent', boxShadow:'none', overflow:'visible' };
-    const material = (from:string,to:string):Keyframe[] => [
-      {fill:from,offset:0},{fill:to,offset:end},{fill:to,offset:1}
-    ];
     const tracks: Track[] = [
-      {element:content,frames:frames.map(frame=>({...transparent,offset:frame.offset,clipPath:String(frame.d)}))},
-      {element:surface,frames},
-      {element:surface,frames:material(backgroundFrom,backgroundTo)},
+      {element:content,frames:clipFrames.map(frame=>({...transparent,...frame}))},
+      {element:overlay,frames},
+      {element:overlay,frames:[
+        {backgroundColor:backgroundFrom,borderColor:borderFrom,offset:0},
+        {backgroundColor:backgroundTo,borderColor:borderTo,offset:end},
+        {backgroundColor:backgroundTo,borderColor:borderTo,offset:1},
+      ]},
     ];
-    if (outline) tracks.push({element:outline,frames:outlineFrames},{element:outline,frames:material(borderFrom,borderTo)});
-    if(replacesTrigger){
+    const overlapsTarget=source.left<box.right&&source.right>box.left&&source.top<box.bottom&&source.bottom>box.top;
+    if(replacesTrigger||overlapsTarget){
       const hideStart=numberToken(content,'liquid-source-hide-start');
       const hideEnd=numberToken(content,'liquid-source-hide-end');
       const blur=token(content,'liquid-source-blur');
@@ -185,7 +182,7 @@ export function createLiquidMorphTransition(options: LiquidMorphOptions): Liquid
       const blurred=`${filter==='none'?'':`${filter} `}blur(${blur})`;
       // Crossfade both contents over the same interval, without moving the
       // source foreground. Reversing retains the same complementary tracks.
-      tracks.push({element:triggerCopy,frames:[
+      tracks.push({element:triggerCopy,easing:'linear',frames:[
         {opacity:sourceStyle.opacity,filter,offset:0},
         {opacity:sourceStyle.opacity,filter,offset:hideStart},
         {opacity:0,filter:blurred,offset:hideEnd},

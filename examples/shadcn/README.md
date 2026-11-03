@@ -32,3 +32,9 @@ in the core export. Components render their original surfaces at rest.
 Run `npm run dev` from the repository root. `npm run build:shadcn` builds this
 provider alone after the core has been built. See `SHADCN-LICENSE` for the registry
 source license.
+
+The inline editors use the local Input component with a visible placeholder for
+search and an accessible name for both fields. Icon-only search, split-menu,
+and back buttons use Button with size="icon". The navigation demos use Card as
+a div with an explicit navigation role. The cascading demo uses the native
+HTML Popover API for its top layer and Card for each submenu surface.

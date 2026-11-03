@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
-import { createMorphTransition, createLiquidMorphTransition, createScaleTransition, createSlideTransition } from '../../dist/index.js';
+import { createGrowTransition, createExtractTransition, createMorphTransition, createSlideTransition } from '../../dist/index.js';
 
 // Radix owns presence, placement, focus and dismissal. Keep its controlled open
 // state until the reversible exit finishes; only then let Radix unmount.
@@ -46,9 +46,9 @@ export function useMotionOverlay(name, kind, liquid=false,grow=false,replaceTrig
       if (next === 'closed' && !desired.current) setPresent(false);
     } };
     const transition = kind === 'menu'
-      ? (liquid ? createLiquidMorphTransition : createMorphTransition)({ ...options, trigger: trigger.current, replaceTrigger })
+      ? (replaceTrigger ? createMorphTransition : liquid ? createExtractTransition : createGrowTransition)({ ...options, trigger: trigger.current, replaceTrigger })
       : kind === 'dialog' || grow
-      ? createScaleTransition({ ...options, axis:grow&&kind==='sheet'?'width':undefined, backdrop: backdrop.current })
+      ? createGrowTransition({ ...options, axis:grow&&kind==='sheet'?'width':undefined, backdrop: backdrop.current })
       : createSlideTransition({ ...options, side: 'right', backdrop: kind === 'sheet' ? backdrop.current : undefined });
     controller.current = transition;
     window.shadcnMotionDemo ??= {};

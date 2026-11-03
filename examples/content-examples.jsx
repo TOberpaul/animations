@@ -1,5 +1,5 @@
 import React,{useLayoutEffect,useRef,useState} from 'react';
-import {createContentTransition,createScaleTransition,observeMotion} from '../dist/index.js';
+import {createContentTransition,createGrowTransition,observeMotion} from '../dist/index.js';
 import {Example} from './mini-examples.jsx';
 
 function useContent(name,staggered=false,cardEffect='content'){
@@ -21,7 +21,7 @@ function useContent(name,staggered=false,cardEffect='content'){
         if(next==='destroyed')return;
         content.inert=next==='closed'||next==='closing';refresh();
       }};
-      const transition=card&&cardEffect==='grow'?createScaleTransition(options):createContentTransition(options);
+      const transition=card&&cardEffect==='grow'?createGrowTransition(options):createContentTransition(options);
       records.push({element:content,transition});
     }
     const controller={

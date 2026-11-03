@@ -13,3 +13,11 @@ export { createMotion } from './declarative.js';
 export type { MotionOptions } from './declarative.js';
 export { observeMotion } from './observe.js';
 export type { MotionEntry, ObserveMotionOptions } from './observe.js';
+
+export { createGrowTransition } from './transitions/grow.js';
+export type { GrowOptions } from './transitions/grow.js';
+export { createExtractTransition } from './transitions/extract.js';
+export type { ExtractOptions } from './transitions/extract.js';
+
+export { getMotionKind, motionBehaviors } from './behaviors.js';
+export type { MotionKind } from './behaviors.js';

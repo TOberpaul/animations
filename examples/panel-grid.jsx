@@ -1,5 +1,5 @@
 import React,{useLayoutEffect,useRef,useState} from 'react';
-import {createScaleTransition} from '../dist/index.js';
+import {createGrowTransition} from '../dist/index.js';
 import {Example} from './mini-examples.jsx';
 
 export function PanelGridExample({Button,Surface}){
@@ -10,7 +10,7 @@ export function PanelGridExample({Button,Surface}){
   for(const [name,ref] of [['left',left],['right',right]]){
    const content=ref.current;
    content.style.setProperty('--motion-scale-from','0');content.style.setProperty('--motion-scale-origin',name==='left'?'left center':'right center');
-   const motion=createScaleTransition({content,axis:'width',reveal:[...content.children],onStateChange(next){
+   const motion=createGrowTransition({content,axis:'width',reveal:[...content.children],onStateChange(next){
     if(next==='destroyed')return;
     content.hidden=next==='closed';content.inert=next==='closed';
     setStates(previous=>({...previous,[name]:next}));

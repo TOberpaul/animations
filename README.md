@@ -15,7 +15,7 @@ Open [the playground](http://127.0.0.1:4173/examples/).
 
 - **Examples:** switch between DB React and shadcn/ui, light/dark mode, reduced
   motion, duration, progression gap and overshoot; scrub real animation frames.
-- **Code playground:** edit HTML, CSS and JavaScript with live preview. Define
+- **Code playground:** edit HTML with live preview. Define
   motion in code through attributes/classes or direct factories. Drafts are
   stored locally. Exported HTML references the running library server.
 
@@ -35,9 +35,9 @@ tokens, content sequencing, viewport entry and component integration examples.
 
 | Playground animation | Example artifacts |
 | --- | --- |
-| Grow | Action menu, dialog, side panel, notification, three-column panels |
+| Grow | Action menu, dialog, side panel, notification, three-column panels, split-button menu |
 | Extract | Action menu with a retained source button |
-| Morph | Replacing action menu, split button with secondary menu, rename input |
+| Morph | Replacing action menu, rename input |
 | Slide | Two-level submenu |
 | Content | Text block, image/caption and independently revealed page blocks |
 

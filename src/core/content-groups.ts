@@ -1,4 +1,4 @@
-import { numberToken } from './tokens.js';
+import { contentTimeline } from './content-timing.js';
 
 /** Keep icon/label pairs and semantic sections together; never reveal nested groups twice. */
 export function contentGroups(roots:HTMLElement[]):HTMLElement[]{
@@ -13,8 +13,7 @@ export function contentGroups(roots:HTMLElement[]):HTMLElement[]{
 
 /** Bound the stagger so any number of groups still finishes inside the same timeline. */
 export function contentStagger(content:HTMLElement,count:number,span=1):number{
-  if(count<2||!numberToken(content,'content-progressive'))return 0;
-  return Math.min(numberToken(content,'content-stagger'),span/(2*(count-1)));
+  return contentTimeline(content,count,{end:span}).step;
 }
 
 /** Opt in to a shared overlapping sequence: surface first, then its groups. */
@@ -22,7 +21,16 @@ export function hasSurfaceSequence(content:HTMLElement):boolean{
   return content.matches('[data-motion-sequence="surface-first"],.motion-sequence');
 }
 export function sequenceTiming(content:HTMLElement,count:number,index:number):{start:number;end:number}{
-  const step=contentStagger(content,count);
-  if(step<0)throw new Error('Content stagger must be non-negative.');
-  return {start:index*step,end:1-(count-1-index)*step};
+  return contentTimeline(content,count).at(index);
+}
+
+export function revealGroups(content:HTMLElement,roots:HTMLElement[],pseudos:string[],progressive:boolean){
+ const grouped=progressive?contentGroups(roots):roots;
+ const generated=Array.from(new Set(pseudos));
+ const targets=[
+  ...Array.from(new Set(grouped)).map((element,index)=>({element,pseudoElement:undefined as string|undefined,order:Number(element.dataset.motionOrder??(index+generated.length))})),
+  ...generated.map((pseudoElement,index)=>({element:content,pseudoElement,order:Number(content.getAttribute(pseudoElement==='::before'?'data-motion-before-order':'data-motion-after-order')??index)})),
+ ].sort((a,b)=>a.order-b.order);
+ if(targets.some(target=>!Number.isFinite(target.order)))throw new Error('Motion content order must be numeric.');
+ return {targets,orders:Array.from(new Set(targets.map(target=>target.order)))};
 }

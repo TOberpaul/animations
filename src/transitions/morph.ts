@@ -1,7 +1,7 @@
-import { createResizeTransition, type ResizeOptions } from '../core/resize.js';
+import { createLiquidMorphTransition, type LiquidMorphOptions } from './liquid.js';
 import type { Transition } from '../core/lifecycle.js';
-export interface MorphOptions extends ResizeOptions { trigger: HTMLElement }
-/** Resize from the existing trigger's facing edge. */
-export function createMorphTransition(options: MorphOptions): Transition {
-  return createResizeTransition(options, 'morph');
+export type MorphOptions = Omit<LiquidMorphOptions,'replaceTrigger'>;
+/** The source becomes the target; the integration manages original-trigger visibility. */
+export function createMorphTransition(options:MorphOptions):Transition{
+  return createLiquidMorphTransition({...options,replaceTrigger:true});
 }
