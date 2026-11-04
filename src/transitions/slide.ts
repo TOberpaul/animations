@@ -1,5 +1,5 @@
 import { createTransition, type Track } from '../core/animation.js';
-import { duration, numberToken, token } from '../core/tokens.js';
+import { duration, numberToken, overshootToken, token } from '../core/tokens.js';
 import type { Options, Transition } from '../core/lifecycle.js';
 export interface SlideOptions extends Options {
   /** Enter from outside, or shift an existing multi-pane strip. */
@@ -18,12 +18,22 @@ export function createSlideTransition(options: SlideOptions): Transition {
     const xy = side === 'left' || side === 'right' ? `${signed},0,0` : `0,${signed},0`;
     const base = getComputedStyle(content).transform;
     const shifted = `${base === 'none' ? '' : base} translate3d(${xy})`;
-    // Translation stays bounded and never changes the surface dimensions.
+    // Overshoot changes position only; the surface keeps its original dimensions.
     const easing = token(content, 'easing-slide');
     if (!boundedEasing(easing)) throw new Error('--motion-easing-slide must be linear, ease*, or a bounded cubic-bezier (Y controls in [0,1]).');
-    let result: Track[] = [{ element: content, frames: [
-      { transform: options.mode==='shift'?base:shifted, overflow:'clip' }, { transform: options.mode==='shift'?shifted:base, overflow:'clip' }
-    ] }];
+    const from=options.mode==='shift'?base:shifted;
+    const to=options.mode==='shift'?shifted:base;
+    const overshoot=overshootToken(content,'overshoot-max');
+    const peak=numberToken(content,'slide-peak-offset');
+    if(peak<=0||peak>=1)throw new Error('--motion-slide-peak-offset must be between 0 and 1.');
+    const amount=(side==='right'||side==='bottom'?-1:1)*overshoot;
+    const travel=side==='left'||side==='right'?`${amount}px,0,0`:`0,${amount}px,0`;
+    const beyond=`${to==='none'?'':to} translate3d(${travel})`;
+    let result: Track[] = [{ element: content, easing:'linear', frames: overshoot>0?[
+      {transform:from,overflow:'clip',offset:0,easing},
+      {transform:beyond,overflow:'clip',offset:peak,easing},
+      {transform:to,overflow:'clip',offset:1}
+    ]:[{transform:from,overflow:'clip',offset:0,easing},{transform:to,overflow:'clip',offset:1}] }];
     const outgoing=options.outgoing?(Array.isArray(options.outgoing)?options.outgoing:[options.outgoing]):[];
     if(outgoing.length){
       const start=numberToken(content,'slide-reveal-offset'),end=numberToken(content,'slide-reveal-end');

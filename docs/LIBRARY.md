@@ -159,8 +159,10 @@ component's responsibility.
 
 ### Slide
 
-`side` accepts `top`, `right`, `bottom`, `left`. Translation does not overshoot
-past its final position and does not stretch or resize the container.
+`side` accepts `top`, `right`, `bottom`, `left`. Translation moves slightly beyond its final position, then settles back.
+Overshoot uses the shared shorter-side percentage and `--motion-overshoot-max` cap.
+The container never stretches or resizes. `--motion-slide-peak-offset` defaults to `.8`.
+Set `--motion-overshoot-max: 0rem` to disable positional overshoot.
 
 `mode: 'shift'` shifts an existing strip, retaining its closed visual state.
 Use `outgoing` for the old pane and `reveal` for the incoming pane. The submenu
