@@ -1,3 +1,4 @@
+import {positionMotion,type MotionPositionOptions,type MotionPlacement} from './position.js';
 import type { Options, Transition } from './core/lifecycle.js';
 import { createGrowTransition } from './transitions/grow.js';
 import { createExtractTransition } from './transitions/extract.js';
@@ -9,10 +10,11 @@ import { createContentTransition } from './transitions/content.js';
 
 export interface MotionOptions extends Options {
   trigger?: HTMLElement;
+  position?:Omit<MotionPositionOptions,'content'|'trigger'>;
   backdrop?: HTMLElement | 'native';
 }
 /** Declarative factory only: the consuming component still owns events and lifecycle. */
-export function createMotion(options:MotionOptions):Transition{
+function createVisualMotion(options:MotionOptions):Transition{
   const {content}=options;
   const kind=getMotionKind(content);
   const revealSelector=content.dataset.motionReveal;
@@ -41,4 +43,25 @@ export function createMotion(options:MotionOptions):Transition{
   if(!(trigger instanceof HTMLElement))throw new Error(`${kind} requires a trigger option or data-motion-trigger selector.`);
   if(kind==='morph')return createMorphTransition({...resolved,trigger});
   return createExtractTransition({...resolved,trigger});
+}
+
+/** Placement is opt-in; existing component positioning remains the default. */
+export function createMotion(options:MotionOptions):Transition{
+ const {content}=options,doc=content.ownerDocument;
+ const reference=content.dataset.motionRelativeTo;
+ const trigger=options.trigger??doc.querySelector<HTMLElement>(content.dataset.motionTrigger||':not(*)')??undefined;
+ let position=options.position;
+ if(!position&&reference){
+  const relativeTo=reference==='trigger'||reference==='viewport'?reference:doc.querySelector<HTMLElement>(reference);
+  if(!relativeTo)throw new Error('Invalid data-motion-relative-to.');
+  position={relativeTo,placement:content.dataset.motionPlacement as MotionPlacement|undefined,space:content.dataset.motionSpace};
+ }
+ if(!position)return createVisualMotion(options);
+ const adapter=positionMotion({...position,content,trigger});
+ let transition:Transition;
+ try{adapter.update();transition=createVisualMotion(options);}catch(error){adapter.destroy();throw error;}
+ return {get state(){return transition.state;},get isOpen(){return transition.isOpen;},
+ open(){if(transition.state==='closed')adapter.update();transition.open();},close(){transition.close();},
+ toggle(){if(transition.isOpen)transition.close();else this.open();},
+ destroy(){transition.destroy();adapter.destroy();}};
 }

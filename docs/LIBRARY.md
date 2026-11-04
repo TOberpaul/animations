@@ -378,3 +378,34 @@ For an existing controller use `const unbind = bindMotionInteractions({content: 
 | data-motion-dismiss | outside / none | Close on outside click, or require explicit closing | none |
 | data-motion-escape | true / false | Allow Escape dismissal | true for click, hover and focus; false otherwise |
 | data-motion-once | true / false | Reveal only once with observer activation | false |
+
+## Optional positioning
+
+Existing component placement is the default. Opt in with `createMotion` or `createInteractiveMotion`:
+
+```ts
+const motion = createMotion({
+  content: target,
+  trigger,
+  position: { relativeTo: 'trigger', placement: 'bottom-end', space: '.75rem' },
+});
+```
+
+`relativeTo` accepts `'trigger'`, `'viewport'`, or an HTMLElement. The HTML equivalent:
+
+```html
+<section data-motion="grow" data-motion-trigger="#trigger"
+  data-motion-relative-to="trigger" data-motion-placement="bottom-end"
+  data-motion-space=".75rem" hidden>...</section>
+```
+
+For a container use `data-motion-relative-to="#preview"`; for the screen use `viewport`.
+
+| Option | Values | Default |
+| --- | --- | --- |
+| `placement` / `data-motion-placement` | center; top, bottom, left, right, optionally suffixed with -start or -end | center |
+| `space` / `data-motion-space` | CSS length, or numeric CSS pixels in TypeScript | 0 |
+
+Trigger placements sit outside its edge. Viewport and container placements sit inside the reference with the specified inset. Center overlays the reference center. Placement determines the final rectangle; `data-motion-anchor` independently determines the growth origin.
+
+For low-level transition factories, use `positionMotion({content, relativeTo, trigger, placement, space})`, call `update()` before opening, and `destroy()` on cleanup. The helper restores the inline positioning styles it owns. It does not portal, flip, clamp, track scrolling, or resize the target. Ancestor overflow still applies. The declarative factories update before each fresh opening; reversals retain their geometry. Call the standalone adapter's `update()` when your integration needs to reposition an already-open element.

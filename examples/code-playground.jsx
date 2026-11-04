@@ -48,6 +48,8 @@ const attributeChoices={
   'data-motion-once':['false','true'],
   'data-motion-escape':['true','false'],
   'data-motion-axis':['width','height'],
+  'data-motion-relative-to':['trigger','viewport'],
+  'data-motion-placement':['center','top','top-start','top-end','bottom','bottom-start','bottom-end','left','left-start','left-end','right','right-start','right-end'],
   'data-motion-anchor':['auto','top-left','top','top-right','left','center','right','bottom-left','bottom','bottom-right'],
   'data-motion-dismiss':['outside','none'],
   'data-motion-side':['top','right','bottom','left'],

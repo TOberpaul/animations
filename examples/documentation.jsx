@@ -54,6 +54,7 @@ trigger.addEventListener('click', () => transition.toggle());
   <p>The component owns its position and final dimensions.</p>
 </section>`}</Code><p>Call <code>createMotion({'{content: target}'})</code> to read declarative attributes. It creates the animation controller; the integration still wires events, visibility and focus.</p><dl>
  <dt>data-motion</dt><dd>grow, extract, morph, slide or fade. Matching motion-* classes are also supported.</dd>
+ <dt>Optional positioning</dt><dd>Use data-motion-relative-to="trigger", "viewport" or a container selector such as "#preview". Set data-motion-placement to center, top, bottom, left or right; append -start or -end for edge alignment. data-motion-space accepts a CSS length such as .75rem. Trigger placement is outside the trigger; viewport and container placement is inside the reference. Without these attributes, positioning stays component-owned. Placement and the animation anchor are independent.</dd>
  <dt>data-motion-anchor</dt><dd>auto, center, top, right, bottom, left or any corner such as top-right. Grow uses the origin; Extract and Morph use it for target overshoot. Auto infers alignment from measured geometry.</dd>
  <dt>data-motion-trigger</dt><dd>A CSS selector for the trigger. Required for Extract and Morph unless passed directly.</dd>
  <dt>data-motion-axis / data-motion-side</dt><dd>Constrain Grow to width or height; choose top, right, bottom or left for Slide.</dd>

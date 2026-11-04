@@ -25,3 +25,6 @@ export { bindOutsideDismiss } from './dismiss.js';
 export type { OutsideDismissOptions } from './dismiss.js';
 export {bindMotionInteractions,createInteractiveMotion} from './interactions.js';
 export type {MotionActivation,MotionInteractionOptions,InteractiveMotionOptions} from './interactions.js';
+
+export {positionMotion} from './position.js';
+export type {MotionPlacement,MotionPositionOptions} from './position.js';
