@@ -105,7 +105,7 @@ function InlineMotionSelect({name,value,choices,onChange}){
   },[node]);
   return <Select open={open} onOpenChange={request} value={value} onValueChange={next=>{pending.current=next;request(false);}}>
     <MotionHint name={name} disabled={open}><SelectTrigger aria-label={name} className="inline-motion-select"><SelectValue/></SelectTrigger></MotionHint>
-    <SelectContent ref={setNode} className="inline-motion-options" style={{'--motion-scale-from':0,'--motion-scale-origin':'left top'}}>
+    <SelectContent ref={setNode} align="end" className="inline-motion-options" style={{'--motion-scale-from':0,'--motion-scale-origin':'right top'}}>
       {choices.map(choice=><SelectItem key={choice} value={choice}>{choice}</SelectItem>)}
     </SelectContent>
   </Select>;
