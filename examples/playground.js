@@ -1,6 +1,7 @@
-export function createPlaygroundController(canvas,{settings,animation,progress,onProgress,onStatus}){
- let active,animations=[],epoch=0,preparing=false,disposed=false;
- const api=()=>canvas.contentWindow?.motionPlayground;
+export function createPlaygroundController(container,{settings,animation,progress,onProgress,onStatus}){
+ let canvas,requestedProvider,active,animations=[],epoch=0,preparing=false,disposed=false;
+ const canvases=new Map();
+ const api=()=>canvas?.contentWindow?.motionPlayground;
  const frame=()=>new Promise(requestAnimationFrame);
  const status=text=>{if(!disposed)onStatus(text);};
  function effects(item){
@@ -48,8 +49,31 @@ export function createPlaygroundController(canvas,{settings,animation,progress,o
    if(version===epoch)status('No animation available.');
   }finally{if(version===epoch)preparing=false;}
  }
- function apply(){api()?.apply(settings());if(settings().reduced)status('Reduced motion is enabled.');}
- const ready=()=>{apply();status(settings().reduced?'Reduced motion is enabled.':'Drag the slider to preview a frame.');};
+ function apply(){for(const item of canvases.values())item.contentWindow?.motionPlayground?.apply(settings());if(settings().reduced)status('Reduced motion is enabled.');}
+ function showProvider(){
+  const next=canvases.get(requestedProvider);
+  if(!next?.contentWindow?.motionPlayground)return;
+  const old=canvas;
+  const oldWindow=old?.contentWindow;
+  const position=oldWindow?.scrollY??0;
+  const cards=oldWindow?[...oldWindow.document.querySelectorAll('.mini-example')]:[];
+  const anchor=cards.findIndex(card=>card.getBoundingClientRect().bottom>0);
+  const offset=anchor>=0?cards[anchor].getBoundingClientRect().top:0;
+  canvas=next;
+  for(const item of canvases.values()){
+   const selected=item===next;
+   item.id=selected?'component-canvas':'';
+   item.style.visibility=selected?'visible':'hidden';
+   item.style.pointerEvents=selected?'auto':'none';
+   item.setAttribute('aria-hidden',String(!selected));item.inert=!selected;
+  }
+  if(old!==next){
+   const card=next.contentWindow.document.querySelectorAll('.mini-example')[anchor];
+   next.contentWindow.scrollTo(0,card?next.contentWindow.scrollY+card.getBoundingClientRect().top-offset:position);
+  }
+  status(settings().reduced?'Reduced motion is enabled.':'Drag the slider to preview a frame.');
+ }
+ const ready=()=>{apply();showProvider();};
  const interact=()=>{epoch++;preparing=false;animations.forEach(a=>{if(a.playState==='paused')a.play();});active=undefined;animations=[];status('Drag the slider to preview a frame.');};
  window.addEventListener('motion-playground-ready',ready);window.addEventListener('motion-playground-interaction',interact);
  return {
@@ -62,10 +86,21 @@ export function createPlaygroundController(canvas,{settings,animation,progress,o
    else{epoch++;preparing=false;void prepare();}
   },
   switchProvider(value){
-   epoch++;preparing=false;active=undefined;animations=[];onProgress(0);status('Loading components…');
-   canvas.src=`./${value==='db'?'db-react':'shadcn'}/?embed=1`;
+   epoch++;preparing=false;
+   animations.forEach(animation=>{if(animation.playState==='paused')animation.play();});
+   active=undefined;animations=[];onProgress(0);
+   requestedProvider=value;
+   for(const provider of [value,value==='db'?'shadcn':'db'])if(!canvases.has(provider)){
+    const item=document.createElement('iframe');
+    item.title=provider==='db'?'DB React motion examples':'shadcn motion examples';
+    item.dataset.provider=provider;item.style.visibility='hidden';item.style.pointerEvents='none';item.inert=true;item.setAttribute('aria-hidden','true');
+    canvases.set(provider,item);container.append(item);
+    item.src=`./${provider==='db'?'db-react':'shadcn'}/?embed=1&theme=${settings().theme}`;
+   }
+   showProvider();
    const url=new URL(location.href);url.searchParams.set('components',value);history.replaceState(null,'',url);
   },
-  destroy(){disposed=true;epoch++;window.removeEventListener('motion-playground-ready',ready);window.removeEventListener('motion-playground-interaction',interact);animations.forEach(a=>a.cancel());animations=[];active=undefined;}
+  scrollHome(){canvas?.contentWindow?.scrollTo({top:0,behavior:'instant'});},
+  destroy(){disposed=true;epoch++;window.removeEventListener('motion-playground-ready',ready);window.removeEventListener('motion-playground-interaction',interact);animations.forEach(a=>a.cancel());animations=[];active=undefined;canvases.forEach(item=>item.remove());canvases.clear();}
  };
 }

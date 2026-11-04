@@ -5,6 +5,7 @@ import {Tooltip,TooltipTrigger,TooltipContent,TooltipProvider} from './shadcn/co
 import {motionSettingsTokens} from './motion-settings.js';
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {Button} from './shadcn/components/ui/button';
+import {Minus,Plus} from 'lucide-react';
 
 const html=`<button id="trigger" aria-controls="target" aria-expanded="false">Open preview</button>
 <!-- Choose grow, extract, morph, slide or fade here. -->
@@ -269,6 +270,9 @@ function HtmlEditor({code,onChange,onRun}){
 }
 
 export function CodePlayground({settings}){
+ const [mobilePane,setMobilePane]=useState('editor');
+ const [textZoom,setTextZoom]=useState(()=>{try{const value=Number(localStorage.getItem('motion-code-text-zoom'));return value>=50&&value<=200?value:100;}catch{return 100;}});
+ function zoom(value){const next=Math.max(50,Math.min(200,value));setTextZoom(next);try{localStorage.setItem('motion-code-text-zoom',String(next));}catch{}}
  const [code,setCode]=useState(restore),[applied,setApplied]=useState(code),[error,setError]=useState(''),[revision,setRevision]=useState(0),[progress,setProgress]=useState(0),[previewOpen,setPreviewOpen]=useState(false);
  const frame=useRef(null),epoch=useRef(0);
  useEffect(()=>{const timer=setTimeout(()=>{setApplied(code);try{localStorage.setItem('motion-code-playground',JSON.stringify(code));}catch{}},400);return()=>clearTimeout(timer);},[code]);
@@ -286,7 +290,7 @@ export function CodePlayground({settings}){
  function act(action){epoch.current++;const win=frame.current?.contentWindow;try{win?.document.getAnimations().filter(a=>a.playState==='paused').forEach(a=>a.play());win?.transition?.[action]();}catch(e){setError(String(e));}}
  async function seek(value){setProgress(value);const version=++epoch.current,win=frame.current?.contentWindow;try{const transition=win?.transition;if(!transition){setError('Expose your controller as window.transition to use the preview controls.');return;}if(transition.state==='closed')transition.open();else if(transition.state==='open')transition.close();for(let i=0;i<3;i++){const animations=win.document.getAnimations().filter(a=>!(a instanceof win.CSSAnimation)&&!(a instanceof win.CSSTransition));if(animations.length){const total=Math.max(...animations.map(a=>Number(a.effect.getTiming().duration)));animations.forEach(a=>{a.pause();a.currentTime=value/100*total;});return;}await new Promise(requestAnimationFrame);if(version!==epoch.current)return;}}catch(e){setError(String(e));}}
  function download(){const url=URL.createObjectURL(new Blob([documentCode],{type:'text/html'})),link=document.createElement('a');link.href=url;link.download='motion-playground.html';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
- return <div className="code-playground">
- <div className="code-split"><section className="code-editor border-r"><HtmlEditor code={code} onChange={setCode} onRun={()=>{setApplied(code);setRevision(v=>v+1);}}/></section>
+ return <div className="code-playground" data-mobile-pane={mobilePane}><nav className="code-mobile-tabs" aria-label="Playground pane"><Button size="sm" variant={mobilePane==='editor'?'secondary':'ghost'} aria-pressed={mobilePane==='editor'} onClick={()=>setMobilePane('editor')}>HTML</Button><Button size="sm" variant={mobilePane==='preview'?'secondary':'ghost'} aria-pressed={mobilePane==='preview'} onClick={()=>setMobilePane('preview')}>Preview</Button></nav>
+ <div className="code-split"><section className="code-editor border-r" style={{'--code-text-size':`${textZoom/100}rem`}}><HtmlEditor code={code} onChange={setCode} onRun={()=>{setApplied(code);setRevision(v=>v+1);}}/><div className="code-editor-footer"><div role="group" aria-label="Code text zoom" className="code-text-zoom"><Button type="button" variant="outline" size="icon" aria-label="Decrease code text size" disabled={textZoom<=50} onClick={()=>zoom(textZoom-10)}><Minus aria-hidden="true"/></Button><Button type="button" variant="outline" aria-label={`Reset code text zoom to 100 percent. Current zoom ${textZoom} percent`} onClick={()=>zoom(100)}>{textZoom}%</Button><Button type="button" variant="outline" size="icon" aria-label="Increase code text size" disabled={textZoom>=200} onClick={()=>zoom(textZoom+10)}><Plus aria-hidden="true"/></Button></div></div></section>
  <section className="code-preview"><div className="code-preview-controls border-b"><Button variant={previewOpen?"secondary":"outline"} aria-label="Preview open" aria-pressed={previewOpen} onClick={()=>act('toggle')}>{previewOpen?"Close":"Open"}</Button><label>Frame <input type="range" min="0" max="100" step=".1" value={progress} disabled={settings.reduced} onChange={e=>seek(Number(e.target.value))}/><output>{Math.round(progress)}%</output></label><div className="code-preview-file-actions"><Button variant="outline" onClick={()=>{setCode(initial);setApplied(initial);setRevision(v=>v+1);}}>Reset</Button><Button variant="outline" onClick={download}>Export HTML</Button></div></div><iframe ref={frame} title="Code live preview" sandbox="allow-scripts allow-same-origin" srcDoc={documentCode}/>{error&&<pre className="code-error" role="alert">{error}</pre>}</section></div></div>;
 }

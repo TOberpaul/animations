@@ -1,11 +1,32 @@
-import React from 'react';
+import React,{useLayoutEffect,useRef,useState} from 'react';
 import {motionBehaviors} from '../dist/index.js';
+import {Button} from './shadcn/components/ui/button';
+import {Download} from 'lucide-react';
 
-const sections=['Getting started','Behaviors','HTML attributes','Content and timing','Design tokens','Lifecycle and accessibility','Publishing'];
+const sections=['Getting started','Behaviors','HTML attributes','Content and timing','Design tokens','Lifecycle and accessibility'];
 const slug=text=>text.toLowerCase().replaceAll(' ','-');
 function Code({children}){return <pre><code>{children}</code></pre>;}
 export function Documentation(){
- return <div className="documentation"><nav aria-label="Documentation sections">{sections.map(title=><a key={title} href={'#'+slug(title)}>{title}</a>)}<a href="../docs/LIBRARY.md" download>Download library guide</a></nav><article>
+ const root=useRef(null),[active,setActive]=useState(slug(sections[0]));
+ useLayoutEffect(()=>{
+   const scroller=root.current;
+   const targets=sections.map(title=>scroller.querySelector('#'+slug(title)));
+   let frame=0;
+   function update(){
+     frame=0;
+     const edge=scroller.getBoundingClientRect().top+Math.min(160,scroller.clientHeight*.25);
+     let current=targets[0];
+     for(const target of targets)if(target.getBoundingClientRect().top<=edge)current=target;
+     if(scroller.scrollTop+scroller.clientHeight>=scroller.scrollHeight-2)current=targets[targets.length-1];
+     setActive(current.id);
+   }
+   function schedule(){if(!frame)frame=requestAnimationFrame(update);}
+   scroller.addEventListener('scroll',schedule,{passive:true});
+   const resize=new ResizeObserver(schedule);resize.observe(scroller);resize.observe(scroller.querySelector('article'));
+   update();
+   return()=>{scroller.removeEventListener('scroll',schedule);resize.disconnect();cancelAnimationFrame(frame);};
+ },[]);
+ return <div className="documentation" ref={root}><nav aria-label="Documentation sections">{sections.map(title=><a key={title} href={'#'+slug(title)} aria-current={active===slug(title)?'location':undefined}>{title}</a>)}</nav><article>
  <header><p className="docs-eyebrow">MOTION LIBRARY</p><h1>Documentation</h1><p>Framework-independent visual transitions built with TypeScript, CSS tokens and the Web Animations API.</p></header>
  <section id="getting-started"><h2>Getting started</h2><p>Load the library styles, measure an existing component and create a controller. Components keep ownership of layout, positioning, accessibility and presence.</p><Code>{`import { createGrowTransition } from './dist/index.js';
 // Load dist/styles/motion.css in your page.
@@ -36,9 +57,8 @@ trigger.addEventListener('click', () => transition.toggle());
  <dt>data-motion-trigger</dt><dd>A CSS selector for the trigger. Required for Extract and Morph unless passed directly.</dd>
  <dt>data-motion-axis / data-motion-side</dt><dd>Constrain Grow to width or height; choose top, right, bottom or left for Slide.</dd>
  <dt>data-motion-reveal</dt><dd>Selector for inner content targets. Include headings, icons, labels, dividers and controls.</dd>
- <dt>data-motion-dismiss</dt><dd>Playground adapter setting: outside closes on outside click; none keeps the surface open. For your own component use its dismissal API or bindOutsideDismiss().</dd>
  </dl></section>
- <section id="content-and-timing"><h2>Content and timing</h2><p>The default duration is 300 ms. Progressive reveal is enabled in the playground and optional in the library. Each page content item retains its full duration; progression adds a gap between start times.</p><Code>{`target.style.setProperty('--motion-content-progressive', '1');
+ <section id="content-and-timing"><h2>Content and timing</h2><p>The default duration is 300 ms. Progressive reveal is enabled by default. Set --motion-content-progressive to 0 to disable it. Each page content item retains its full duration; progression adds a gap between start times.</p><Code>{`target.style.setProperty('--motion-content-progressive', '1');
 target.style.setProperty('--motion-content-stagger', '.08');
 // Group related content and set its progression order:
 // <div data-motion-content-group data-motion-order="1">...</div>
@@ -49,22 +69,19 @@ const stop = observeMotion([{element: block, transition}], {
 });
 // On unmount: stop.disconnect(); transition.destroy();`}</Code><p>Repeated entry closes the block after it fully leaves the viewport. Layout space stays reserved. Use separate observers/controllers for independent blocks.</p></section>
  <section id="design-tokens"><h2>Design tokens</h2><Code>{`:root {
-  --motion-duration-default: 300ms;
+  --motion-duration: 300ms;
   --motion-easing-standard: cubic-bezier(.42, 0, .58, 1);
   --motion-overshoot-min: 15%;
-  --motion-liquid-trigger-overshoot: .75rem;
-  --motion-liquid-overshoot: .75rem;
+  --motion-overshoot-max: .75rem;
   --motion-scale-from: 0;
   --motion-scale-origin: center center;
 }`}</Code><p>Tokens are read from computed styles. Overshoot uses a proportion of the shorter side, capped by the rem maximum. See the downloadable guide and motion.css for all semantic aliases.</p></section>
- <section id="lifecycle-and-accessibility"><h2>Lifecycle and accessibility</h2><p>The library respects prefers-reduced-motion and settles directly into a stable state. Decorative copies are inert and hidden from assistive technology. Use the component’s existing keyboard navigation, focus management, labels and dismissal behavior.</p><p>Keep aria-expanded synchronized, mark closed views hidden and inert, return focus when appropriate, and destroy controllers/listeners on unmount. Include every visible part in reveal groups. Native DB and Radix accessibility behavior remains the responsibility of the component integration.</p><Code>{`const unbind = bindOutsideDismiss({
+ <section id="lifecycle-and-accessibility"><h2>Lifecycle and accessibility</h2><p>The library respects prefers-reduced-motion and settles directly into a stable state. Decorative copies are inert and hidden from assistive technology. Use the component’s existing keyboard navigation, focus management, labels and dismissal behavior.</p><p>Keep aria-expanded synchronized, mark closed views hidden and inert, return focus when appropriate, and destroy controllers/listeners on unmount. Include every visible part in reveal groups. The consuming component remains responsible for its accessibility behavior.</p><Code>{`const unbind = bindOutsideDismiss({
   elements: () => [trigger, target],
   enabled: () => transition.isOpen,
   onDismiss: () => transition.close(),
 });
 // On unmount: unbind(); transition.destroy();`}</Code><p>Outside-click dismissal is opt-in. Omit it for persistent dialogs. Screen-reader and real-device validation is still needed for each consuming application.</p></section>
- <section id="publishing"><h2>Publishing</h2><Code>{`npm ci
-npm run build:site
-# Publish the contents of site/ with any static web host.`}</Code><p>The website includes Examples, Code playground and Documentation. It supports hosting under a subdirectory and uses query parameters for views, so no server-side route rewrites are required.</p><p>Export HTML links to this hosted library and preview adapter. Keep those files available when sharing an exported page.</p></section>
+ <footer className="docs-download"><Button asChild variant="secondary"><a href="../docs/LIBRARY.md" download><Download aria-hidden="true"/>Download library guide (.md)</a></Button></footer>
  </article></div>;
 }
