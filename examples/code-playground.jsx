@@ -293,8 +293,8 @@ function HtmlEditor({code,onChange,onRun}){
 
 export function CodePlayground({settings}){
  const [mobilePane,setMobilePane]=useState('editor');
- const [textZoom,setTextZoom]=useState(()=>{try{const value=Number(localStorage.getItem('motion-code-text-zoom'));return value>=50&&value<=200?value:100;}catch{return 100;}});
- function zoom(value){const next=Math.max(50,Math.min(200,value));setTextZoom(next);try{localStorage.setItem('motion-code-text-zoom',String(next));}catch{}}
+ const [textZoom,setTextZoom]=useState(()=>{try{const value=Number(localStorage.getItem('motion-code-text-zoom-v2'));return value>=50&&value<=200?value:200;}catch{return 200;}});
+ function zoom(value){const next=Math.max(50,Math.min(200,value));setTextZoom(next);try{localStorage.setItem('motion-code-text-zoom-v2',String(next));}catch{}}
  const [code,setCode]=useState(restore),[applied,setApplied]=useState(code),[error,setError]=useState(''),[revision,setRevision]=useState(0),[progress,setProgress]=useState(0),[previewOpen,setPreviewOpen]=useState(false);
  const frame=useRef(null),epoch=useRef(0);
  useEffect(()=>{const timer=setTimeout(()=>{setApplied(code);try{localStorage.setItem('motion-code-playground',JSON.stringify(code));}catch{}},400);return()=>clearTimeout(timer);},[code]);
