@@ -82,3 +82,5 @@ body{margin:0;min-width:0}
 .search-slot{width:min(100%,280px);justify-items:start}
 .search-slot .rename-surface{left:0;transform:translateY(-50%);width:100%}
 .search-slot .rename-surface:has(.db-input){--motion-liquid-source-hide-start:.16;--motion-liquid-source-hide-end:.28}
+
+.mini-grid{display:flex;flex-direction:column;gap:48px}.example-section{min-width:0}.example-section-heading{margin:0 0 20px}.example-section-heading h2{margin:0;font:600 22px/1.4 system-ui}.example-section-heading p{margin:8px 0 0;font:14px/1.5 system-ui;opacity:.65}.example-section-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.mini-example>header h3{font:600 14px/1.4 system-ui;margin:0}@media(max-width:1050px){.example-section-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.mini-grid{gap:32px}.example-section-grid{grid-template-columns:minmax(0,1fr)}}

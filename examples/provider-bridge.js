@@ -6,6 +6,11 @@ export function connectPlayground(entries) {
     root.classList.toggle('dark',settings.theme==='dark');root.dataset.mode=settings.theme;
     root.style.colorScheme=settings.theme;
     for(const [name,value] of Object.entries(motionSettingsTokens(settings)))root.style.setProperty(name,value);
+    const once=settings.contentEntry==='once';
+    if(window.motionPlayground.contentEntryOnce!==once){
+      window.motionPlayground.contentEntryOnce=once;
+      window.dispatchEvent(new Event('motion-entry-settings'));
+    }
   };
   window.motionPlayground={entries,apply,previewing:false};
   const interact=event=>{if(event.isTrusted){window.motionPlayground.previewing=false;parent.dispatchEvent(new Event('motion-playground-interaction'));}};

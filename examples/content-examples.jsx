@@ -27,18 +27,23 @@ function useContent(name,staggered=false,cardEffect='content'){
     const controller={
       get state(){const states=records.map(record=>record.transition.state);return states.includes('opening')?'opening':states.includes('closing')?'closing':states.every(state=>state==='closed')?'closed':'open';},
       get isOpen(){return records.some(record=>record.transition.isOpen);},
-      open(){observer.current?.disconnect();records.forEach(record=>record.transition.open());},
-      close(){observer.current?.disconnect();records.forEach(record=>record.transition.close());},
+      open(){records.forEach(record=>record.transition.open());},
+      close(){records.forEach(record=>record.transition.close());},
       toggle(){controller.isOpen?controller.close():controller.open();},
       destroy(){disposed=true;observer.current?.disconnect();records.forEach(record=>record.transition.destroy());},
     };
     motion.current=controller;
     window.contentMotionDemo??={};window.contentMotionDemo[name]={motion:controller,content:element,blocks:records};
     refresh();
-    observer.current=observeMotion(records,{canPlay:()=>!window.motionPlayground?.previewing});
-    return()=>{controller.destroy();delete window.contentMotionDemo[name];};
+    function observe(){
+      observer.current?.disconnect();
+      observer.current=observeMotion(records,{once:window.motionPlayground?.contentEntryOnce??false,canPlay:()=>!window.motionPlayground?.previewing});
+    }
+    observe();
+    window.addEventListener('motion-entry-settings',observe);
+    return()=>{window.removeEventListener('motion-entry-settings',observe);controller.destroy();delete window.contentMotionDemo[name];};
   },[name,staggered,cardEffect]);
-  return {root,state,toggle(){observer.current?.disconnect();motion.current?.toggle();}};
+  return {root,state,toggle(){motion.current?.toggle();}};
 }
 
 export function ContentExamples({Button,Surface}){
@@ -66,7 +71,7 @@ function ContentPage({Button,Surface}){
   const m=useContent('page',true,cardEffect);
   const [origin,setOrigin]=useState('center center');
   return <Example name="Content" component="Content page · independent blocks" state={m.state} className="content-example content-page-example">
-    <div className="content-page-controls"><Button onClick={m.toggle}>Toggle page</Button><small>Each block reveals on screen entry. Toggle to repeat.</small><label className="content-card-origin">Card animation <select value={cardEffect} onChange={event=>setCardEffect(event.target.value)}><option value="content">Slide + blur + fade</option><option value="grow">Grow</option></select></label><label className="content-card-origin">Card anchor <select value={origin} onChange={event=>setOrigin(event.target.value)}><option value="center center">Center</option><option value="left top">Top left</option><option value="right top">Top right</option><option value="center bottom">Bottom</option></select></label></div>
+    <div className="content-page-controls"><Button onClick={m.toggle}>Toggle page</Button><small>Each block reveals on entry and resets outside the viewport.</small><label className="content-card-origin">Card animation <select value={cardEffect} onChange={event=>setCardEffect(event.target.value)}><option value="content">Slide + blur + fade</option><option value="grow">Grow</option></select></label><label className="content-card-origin">Card anchor <select value={origin} onChange={event=>setOrigin(event.target.value)}><option value="center center">Center</option><option value="left top">Top left</option><option value="right top">Top right</option><option value="center bottom">Bottom</option></select></label></div>
     <article ref={m.root} className="content-page" aria-label="A slower kind of journey">
       <header data-content-block><small>FIELD NOTES / 01</small><h3>A slower kind of journey.</h3><p>Give stories space. Bring a page to life with a quiet sequence of headings, images and supporting content.</p></header>
       <figure data-content-block className="content-figure"><img src="../assets/landscape.svg" width="1200" height="720" alt="A soft blue mountain landscape beside a still lake"/><figcaption>Start with a clear point of view.</figcaption></figure>

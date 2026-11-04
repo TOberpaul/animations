@@ -9,7 +9,7 @@ import {Sheet,SheetTrigger,SheetContent,SheetHeader,SheetTitle,SheetDescription,
 import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem} from './components/ui/dropdown-menu';
 import {Toast,ToastProvider,ToastViewport,ToastTitle,ToastDescription,ToastClose} from './components/ui/toast';
 import {useMotionOverlay} from './use-motion-overlay';
-import {Example,RenameExample,NavigationExample,CascadingPopover,Chevron} from '../mini-examples.jsx';
+import {Example,ExampleSection,RenameExample,NavigationExample,CascadingPopover,Chevron} from '../mini-examples.jsx';
 import {PanelGridExample} from '../panel-grid.jsx';
 import {ContentExamples} from '../content-examples.jsx';
 import {connectPlayground} from '../provider-bridge.js';
@@ -53,6 +53,6 @@ function App(){
     {name:'image',label:'Image block',get:()=>window.contentMotionDemo?.image},
     {name:'page',label:'Content page',get:()=>window.contentMotionDemo?.page},
  ]),[]);
- return <main className="mini-grid"><Menu notify={notify}/><Menu liquid notify={notify}/><Menu liquid replace notify={notify}/><Menu split notify={notify}/><DialogExample/><DrawerExample grow/><NotificationExample grow message={message}/><PanelGridExample Button={Button} Surface={Card}/><RenameExample Button={Button} Input={Input}/><RenameExample Button={IconButton} Input={Input} search/><NavigationExample Button={Button} BackButton={IconButton} Surface={Card}/><CascadingPopover Button={Button} Surface={Card}/><ContentExamples Button={Button} Surface={Card}/></main>;
+ return <main className="mini-grid"><ExampleSection title="Action menus" description="Compare Grow, Extract and Morph, including split-button actions."><Menu notify={notify}/><Menu liquid notify={notify}/><Menu liquid replace notify={notify}/><Menu split notify={notify}/></ExampleSection><ExampleSection title="Overlays" description="Dialogs, side panels and notifications."><DialogExample/><DrawerExample grow/><NotificationExample grow message={message}/></ExampleSection><ExampleSection title="Layout panels" description="Independent panels anchored to the edges of a three-column layout."><PanelGridExample Button={Button} Surface={Card}/></ExampleSection><ExampleSection title="Inline inputs" description="Transform buttons into editable fields."><RenameExample Button={Button} Input={Input}/><RenameExample Button={IconButton} Input={Input} search/></ExampleSection><ExampleSection title="Navigation" description="Two-level navigation and cascading context menus."><NavigationExample Button={Button} BackButton={IconButton} Surface={Card}/><CascadingPopover Button={Button} Surface={Card}/></ExampleSection><ExampleSection title="Page content" description="Independent text, image and card reveals on screen entry."><ContentExamples Button={Button} Surface={Card}/></ExampleSection></main>;
 }
 if(window.parent===window)location.replace('../?components=shadcn');else createRoot(document.getElementById('root')).render(<App/>);

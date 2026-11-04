@@ -1,11 +1,16 @@
 import {flushSync} from 'react-dom';
 import React,{useLayoutEffect,useRef,useState} from 'react';
-import {createMorphTransition,createSlideTransition,createGrowTransition} from '../dist/index.js';
+import {createMorphTransition,createSlideTransition,createGrowTransition,bindOutsideDismiss} from '../dist/index.js';
 
 export function Chevron(){return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>;}
 
 export function Example({name,component,state,children,className=''}){
-  return <section className={`mini-example ${className}`}><header><h2>{name}</h2><output>{state}</output></header><div className="mini-stage">{children}</div><small>{component}</small></section>;
+  return <section className={`mini-example ${className}`}><header><h3>{name}</h3><output>{state}</output></header><div className="mini-stage">{children}</div><small>{component}</small></section>;
+}
+
+export function ExampleSection({title,description,children}){
+  const id=React.useId();
+  return <section className="example-section" aria-labelledby={id}><header className="example-section-heading"><h2 id={id}>{title}</h2><p>{description}</p></header><div className="example-section-grid">{children}</div></section>;
 }
 
 export function RenameExample({Button,Input,search=false}){
@@ -111,11 +116,36 @@ const navigation={
 };
 
 export function CascadingPopover({Button,Surface}){
+  const corridor=useRef(null),intentTimer=useRef(null),waitingHover=useRef(null);
+  function clearIntent(){clearTimeout(intentTimer.current);corridor.current=null;waitingHover.current=null;}
+  function insideCorridor(x,y){
+    const zone=corridor.current;
+    if(!zone)return false;
+    const [a,b,c]=zone.points;
+    const cross=(p,q)=> (x-q.x)*(p.y-q.y)-(p.x-q.x)*(y-q.y);
+    const signs=[cross(a,b),cross(b,c),cross(c,a)];
+    return !(signs.some(n=>n<0)&&signs.some(n=>n>0));
+  }
   const id=React.useId(),popup=useRef(null),panels=useRef([]),motions=useRef([]),openers=useRef([]),hoverTimer=useRef(null),focusOnOpen=useRef([]),pending=useRef([]),branches=useRef([]);
   const [state,setState]=useState('closed');
   const [section,setSection]=useState('Foundation'),[topic,setTopic]=useState('Colors');
   const [expanded,setExpanded]=useState(0),[selected,select]=useState('');
   useLayoutEffect(()=>{
+    function trackPointer(event){
+      if(event.pointerType!=='mouse'||!corridor.current)return;
+      const child=panels.current[corridor.current.level];
+      if(child?.contains(event.target)){clearIntent();clearTimeout(hoverTimer.current);return;}
+      if(insideCorridor(event.clientX,event.clientY)){clearTimeout(hoverTimer.current);return;}
+      const queued=waitingHover.current;
+      clearIntent();
+      if(queued)chooseBranch(queued.index,queued.name,queued.event,false);
+    }
+    document.addEventListener('pointermove',trackPointer);
+    const unbindDismiss=bindOutsideDismiss({
+      elements:()=>[openers.current[0],...panels.current],
+      enabled:()=>motions.current[0]?.isOpen??false,
+      onDismiss:()=>closeFrom(0,false),
+    });
     const controllers=panels.current.map((content,index)=>createGrowTransition({
       content,axis:'width',reveal:[...content.children],
       onStateChange(next){
@@ -136,7 +166,7 @@ export function CascadingPopover({Button,Surface}){
       },
     }));
     motions.current=controllers;
-    return()=>{pending.current=[];clearTimeout(hoverTimer.current);controllers.forEach(controller=>controller.destroy());};
+    return()=>{unbindDismiss();document.removeEventListener('pointermove',trackPointer);clearIntent();pending.current=[];clearTimeout(hoverTimer.current);controllers.forEach(controller=>controller.destroy());};
   },[]);
   function positionPanel(index){
     const panel=panels.current[index];
@@ -152,6 +182,7 @@ export function CascadingPopover({Button,Surface}){
     panel.style.setProperty('--motion-scale-origin',opensLeft?'right top':'left top');
   }
   function closeFrom(index,restoreFocus=true){
+    clearIntent();
     clearTimeout(hoverTimer.current);
     pending.current.splice(index);
     motions.current.slice(index).reverse().forEach(controller=>controller.close());
@@ -172,6 +203,21 @@ export function CascadingPopover({Button,Surface}){
   function leavePath(index,event){
     if(event.pointerType!=='mouse')return;
     const destination=event.relatedTarget;
+    const child=panels.current[index];
+    if(motions.current[index]?.isOpen&&event.currentTarget===openers.current[index]&&child&&!child.contains(destination)){
+      const rect=child.getBoundingClientRect(),source=event.currentTarget.getBoundingClientRect();
+      const edge=rect.left>=source.right?rect.left:rect.right;
+      clearIntent();
+      corridor.current={level:index,points:[{x:event.clientX,y:event.clientY},{x:edge,y:rect.top-8},{x:edge,y:rect.bottom+8}]};
+      clearTimeout(hoverTimer.current);
+      intentTimer.current=setTimeout(()=>{
+        const queued=waitingHover.current;clearIntent();
+        if(queued)chooseBranch(queued.index,queued.name,queued.event,false);
+        else if(!child.matches(':hover'))closeFrom(index,false);
+      },450);
+      return;
+    }
+    if(corridor.current&&insideCorridor(event.clientX,event.clientY))return;
     if(destination instanceof Node &&
       (openers.current[index]?.contains(destination)||panels.current.slice(index).some(panel=>panel?.contains(destination))))return;
     clearTimeout(hoverTimer.current);
@@ -189,6 +235,11 @@ export function CascadingPopover({Button,Surface}){
     openLevel(level,request.opener,request.focus);
   }
   function chooseBranch(index,name,event,focus){
+    if(!focus&&corridor.current&&insideCorridor(event.clientX,event.clientY)){
+      waitingHover.current={index,name,event:{currentTarget:event.currentTarget}};
+      return;
+    }
+    clearIntent();
     clearTimeout(hoverTimer.current);
     const level=index+1,opener=event.currentTarget,controller=motions.current[level];
     if(index===0&&(motions.current[2]?.isOpen||pending.current[2]))closeFrom(2,false);
@@ -218,6 +269,7 @@ export function CascadingPopover({Button,Surface}){
             onPointerEnter={event=>{
               if(event.pointerType!=='mouse')return;
               clearTimeout(hoverTimer.current);
+              if(corridor.current&&index>=corridor.current.level)clearIntent();
               if(index===0&&(motions.current[2]?.isOpen||pending.current[2]))closeFrom(2,false);
             }}
             onPointerLeave={event=>leavePath(Math.max(1,index),event)}>

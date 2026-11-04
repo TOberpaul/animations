@@ -43,6 +43,18 @@ export function localScale(content: HTMLElement, to: DOMRectReadOnly) {
 
 type Rectangle = Pick<DOMRectReadOnly, 'left' | 'top' | 'width' | 'height'>;
 
+export const motionAnchors:Record<string,{x:number;y:number}>={
+  'top-left':{x:0,y:0},top:{x:.5,y:0},'top-right':{x:1,y:0},
+  left:{x:0,y:.5},center:{x:.5,y:.5},right:{x:1,y:.5},
+  'bottom-left':{x:0,y:1},bottom:{x:.5,y:1},'bottom-right':{x:1,y:1},
+};
+export function explicitMotionAnchor(content:HTMLElement){
+  const name=content.dataset.motionAnchor;
+  if(!name||name==='auto')return undefined;
+  if(!motionAnchors[name])throw new Error('Invalid data-motion-anchor.');
+  return motionAnchors[name];
+}
+
 /** Read the component's growth anchor from its existing alignment/placement.
  * Matching centers stay centered; matching edges stay fixed during growth. */
 export function growthAnchor(source:Rectangle,target:Rectangle){

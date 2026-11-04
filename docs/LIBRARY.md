@@ -90,7 +90,7 @@ call `showModal()` / close at the appropriate lifecycle points.
 | `createSlideTransition` | Bounded translate3d entry or two-pane shift | Optional `side`, `mode`, `outgoing`, `backdrop` |
 | `createContentTransition` | Fixed slide + blur + fade | Optional `items`, `reveal`, `timing` |
 | `createMotion` | Selects a factory from markup | See declarative integration below |
-| `observeMotion` | Optional once-on-entry integration for independent blocks | Array of `{element, transition}` |
+| `observeMotion` | Optional repeatable screen-entry integration for independent blocks | Array of `{element, transition}` |
 
 Shared options: `content`, `reveal` (one inner element or an array),
 `revealPseudoElements` (`::before` / `::after`), `initiallyOpen`,
@@ -197,7 +197,7 @@ const transition = createMotion({
 | Attribute | Values / purpose |
 | --- | --- |
 | `data-motion` | `grow`, `extract`, `morph`, `slide`, `content` |
-| Matching class instead | `motion-grow`, `motion-extract`, `motion-morph`, `motion-slide`, `motion-content` |
+| Matching class instead | `motion-grow`, `motion-extract`, `motion-morph`, `motion-slide`, `motion-fade` |
 | `data-motion-trigger` | Trigger selector, e.g. `#open`; required for extract/morph unless `trigger` is passed; optional for trigger-edge Grow |
 | `data-motion-reveal` | Selector for inner reveal targets; default: direct HTML children |
 | `data-motion-axis` | Grow axis: `width` or `height` |
@@ -283,7 +283,7 @@ const observer = observeMotion(entries);
 // entries.forEach(entry => entry.transition.destroy());
 ```
 
-Each block is observed independently and opens once at 15% viewport visibility.
+Each block is observed independently and opens at 15% viewport visibility. It closes after fully leaving the viewport and reveals again on re-entry. Set `once: true` to keep it revealed after the first entry.
 There is no page-wide queue. The optional `stagger: true` delays starts for blocks
 entering in the same batch; by default only the content inside each block is
 staggered. Observer options: `root`, `rootMargin`, `threshold`, `canPlay`, `stagger`.
@@ -395,3 +395,11 @@ empty and displays its placeholder until the user enters a query.
 The two-level Slide navigation uses the provider Card as its navigation
 surface. Cascading Grow uses a native HTML popover for the top layer, with
 separate provider Card surfaces for the branches.
+
+Use `data-motion-anchor="top-right"` to set an explicit growth origin. Supported values are `auto`, `center`, `top`, `right`, `bottom`, `left`, and the four corners (`top-left`, `top-right`, `bottom-left`, `bottom-right`). Grow expands from this origin; Extract and Morph use it for target overshoot direction. `auto` infers the anchor from trigger geometry. Final positioning remains owned by the component.
+
+## Outside-click dismissal
+
+Dismissal is an optional component integration, separate from visual motion. Use `bindOutsideDismiss({elements: () => [trigger, target], enabled: () => transition.isOpen, onDismiss: () => transition.close()})`. The returned function removes the listener and must be called on unmount. Include all submenu panels in `elements`. Omit the binding or return false from `enabled` for persistent dialogs. Native component dismissal such as Radix should remain owned by that component.
+
+The HTML playground adapter supports `data-motion-dismiss="outside"` and `data-motion-dismiss="none"` as inline choices. This attribute is interpreted by the adapter, not the visual transition factory.

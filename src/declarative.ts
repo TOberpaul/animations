@@ -3,6 +3,7 @@ import { createGrowTransition } from './transitions/grow.js';
 import { createExtractTransition } from './transitions/extract.js';
 import { createMorphTransition } from './transitions/morph.js';
 import { getMotionKind } from './behaviors.js';
+import { explicitMotionAnchor } from './core/geometry.js';
 import { createSlideTransition, type SlideOptions } from './transitions/slide.js';
 import { createContentTransition } from './transitions/content.js';
 
@@ -20,12 +21,14 @@ export function createMotion(options:MotionOptions):Transition{
   const selector=content.dataset.motionTrigger;
   const trigger=options.trigger??(selector?content.ownerDocument.querySelector<HTMLElement>(selector):null);
   if(kind==='grow'){
+    const anchor=explicitMotionAnchor(content);
+    if(anchor)content.style.setProperty('--motion-scale-origin',`${anchor.x*100}% ${anchor.y*100}%`);
     const axis=content.dataset.motionAxis;
     if(axis&&axis!=='width'&&axis!=='height')throw new Error('data-motion-axis must be width or height.');
     if(selector&&!(trigger instanceof HTMLElement))throw new Error('Invalid data-motion-trigger selector.');
-    return createGrowTransition({...resolved,trigger:trigger??undefined,axis:axis==='width'||axis==='height'?axis:undefined});
+    return createGrowTransition({...resolved,trigger:anchor?undefined:trigger??undefined,axis:axis==='width'||axis==='height'?axis:undefined});
   }
-  if(kind==='content'){
+  if(kind==='fade'){
     const timing=content.dataset.motionTiming;
     if(timing&&timing!=='per-item'&&timing!=='total')throw new Error('data-motion-timing must be per-item or total.');
     return createContentTransition({...resolved,timing:timing==='total'?'total':'per-item'});

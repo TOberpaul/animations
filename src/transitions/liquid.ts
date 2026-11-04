@@ -2,7 +2,7 @@ import { createTransition, type Track } from '../core/animation.js';
 import { overshootToken, numberToken, token } from '../core/tokens.js';
 import type { MotionState, Options, Transition } from '../core/lifecycle.js';
 import { componentCorners } from '../core/rounded-shape.js';
-import { growthAnchor, growthInsets } from '../core/geometry.js';
+import { growthAnchor, growthInsets, explicitMotionAnchor } from '../core/geometry.js';
 export interface LiquidMorphOptions extends Options {
   /** Distinct node: retain the source. Same node as content: become the target.
    * For the same node, prepare the expanded layout synchronously on opening
@@ -102,7 +102,7 @@ export function createLiquidMorphTransition(options: LiquidMorphOptions): Liquid
     if (!(swell >= 0 && overshoot >= 0 && volume > 0 && volume < peak && peak < end && end < 1)) throw new Error('Invalid liquid geometry tokens.');
     // The initial volume phase swells the trigger symmetrically. Only the target
     // grows away from its component-owned anchor; preserve their envelope.
-    const anchor=growthAnchor(source,box);
+    const anchor=explicitMotionAnchor(content)??growthAnchor(source,box);
     const swellPad = swell;
     const targetPad = overshoot;
     const swellEdges=growthInsets({x:.5,y:.5},swellPad),targetEdges=growthInsets(anchor,targetPad);

@@ -13,6 +13,23 @@ npm run dev
 
 Open [the playground](http://127.0.0.1:4173/examples/).
 
+## Publish the website
+
+```sh
+npm ci
+npm run build:site
+```
+
+Upload the contents of `site/` to a static host, or configure its build command
+as `npm run build:site` and publish directory as `site`. The site includes
+Examples, Code playground and Documentation. Subdirectory hosting works without
+route rewrites. Preview the generated site locally at
+[the static build](http://127.0.0.1:4173/site/) while the dev server is running.
+
+GitHub Pages is deployed by `.github/workflows/pages.yml` on every push to
+`main`. Set **Settings → Pages → Source → GitHub Actions** in the repository.
+Website: https://toberpaul.github.io/animations/
+
 - **Examples:** switch between DB React and shadcn/ui, light/dark mode, reduced
   motion, duration, progression gap and overshoot; scrub real animation frames.
 - **Code playground:** edit HTML with live preview. Define

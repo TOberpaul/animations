@@ -6,3 +6,5 @@ examples/db-react/build/
 examples/shadcn/build/
 .env
 .env.*
+
+site/

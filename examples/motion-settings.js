@@ -1,5 +1,5 @@
 /** One settings-to-token mapping for Examples and Code preview. */
-export const playgroundDefaults={duration:300,progressionGap:24,triggerOvershoot:.75,targetOvershoot:.75,overshootMinimum:15,theme:'dark',reduced:false,overshoot:true,progressive:true};
+export const playgroundDefaults={duration:300,contentEntry:"repeat",progressionGap:24,triggerOvershoot:.75,targetOvershoot:.75,overshootMinimum:15,theme:'dark',reduced:false,overshoot:true,progressive:true};
 export function motionSettingsTokens(settings){
  const reduced=settings.reduced||matchMedia('(prefers-reduced-motion: reduce)').matches;
  const time=`${reduced?0:settings.duration}ms`,stagger=String((settings.progressionGap??24)/Math.max(1,settings.duration));

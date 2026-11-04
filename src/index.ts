@@ -21,3 +21,5 @@ export type { ExtractOptions } from './transitions/extract.js';
 
 export { getMotionKind, motionBehaviors } from './behaviors.js';
 export type { MotionKind } from './behaviors.js';
+export { bindOutsideDismiss } from './dismiss.js';
+export type { OutsideDismissOptions } from './dismiss.js';
