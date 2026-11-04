@@ -1,5 +1,5 @@
 import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
-import {createGrowTransition,createExtractTransition,createMorphTransition,createSlideTransition,createContentTransition,bindOutsideDismiss} from '../dist/index.js';
+import {createGrowTransition,createExtractTransition,createMorphTransition,createSlideTransition,createContentTransition} from '../dist/index.js';
 import {Button} from './shadcn/components/ui/button';
 import {Card} from './shadcn/components/ui/card';
 import {Select,SelectTrigger,SelectValue,SelectContent,SelectItem} from './shadcn/components/ui/select';
@@ -11,7 +11,7 @@ const patterns={grow:['Grow',createGrowTransition],extract:['Extract',createExtr
 const names=Object.keys(patterns);
 export function Home({navigate,reduced=false}){
  const target=useRef(null),trigger=useRef(null),motion=useRef(null),demo=useRef(null),advance=useRef(false);
- const [kind,setKind]=useState('grow'),[phase,setPhase]=useState('closed'),[autoplay,setAutoplay]=useState(()=>!reduced),[cycle,setCycle]=useState(false);
+ const [kind,setKind]=useState('grow'),[phase,setPhase]=useState('closed'),[autoplay,setAutoplay]=useState(()=>!reduced),[cycle,setCycle]=useState(true);
  const open=phase==='opening'||phase==='open';
  const [label,factory]=patterns[kind];
  useLayoutEffect(()=>{
@@ -24,8 +24,15 @@ export function Home({navigate,reduced=false}){
    setPhase(state);
   }});
   motion.current=transition;
-  const unbind=bindOutsideDismiss({elements:()=>[demo.current],enabled:()=>transition.isOpen,onDismiss:()=>{setAutoplay(false);transition.close();}});
-  return()=>{unbind();transition.destroy();source.style.visibility='';source.inert=false;};
+  const environment=demo.current;
+  const dismiss=event=>{
+   const path=event.composedPath();
+   if(!transition.isOpen||path.includes(content)||path.includes(source)||
+      path.some(node=>node instanceof Element&&node.classList.contains('home-demo-controls')))return;
+   advance.current=false;setAutoplay(false);transition.close();
+  };
+  environment.addEventListener('click',dismiss);
+  return()=>{environment.removeEventListener('click',dismiss);transition.destroy();source.style.visibility='';source.inert=false;};
  },[kind]);
  useEffect(()=>{if(reduced){advance.current=false;setAutoplay(false);}},[reduced]);
  useEffect(()=>{

@@ -91,3 +91,5 @@ html,body,#root{height:100%;min-height:0}body{height:100dvh;overflow:hidden;marg
 .home-demo-toggles{display:flex;align-items:center;gap:8px}.home-demo-pattern{gap:0}.home-demo-controls{align-items:center}
 
 .home-demo-controls{margin-top:20px;margin-bottom:0}.home-demo-caption{margin-top:auto;padding-top:24px}
+
+.shell-title nav.shell-view-group{gap:0;border:1px solid hsl(var(--input));border-radius:6px;overflow:hidden}.shell-view-group>button{border-radius:0}.shell-view-group>button+button{border-left:1px solid hsl(var(--input))}.shell-view-group>button:focus-visible{position:relative;z-index:1;outline-offset:-3px}@media(max-width:800px){.shell-title nav.shell-view-group{gap:0}}
