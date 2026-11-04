@@ -94,14 +94,27 @@ function InlineMotionSelect({name,value,choices,onChange}){
   useEffect(()=>{
     if(!node)return;
     let disposed=false;
+    let placementHold=null;
+    function holdPlacement(){
+      if(placementHold)return;
+      const wrapper=node.closest('[data-radix-popper-content-wrapper]');
+      if(!wrapper)return;
+      const style=getComputedStyle(wrapper);
+      const pose={width:style.width,height:style.height,transform:style.transform};
+      placementHold=wrapper.animate([pose,pose],{duration:1,fill:'both'});
+      placementHold.pause();placementHold.currentTime=0;
+    }
+    function releasePlacement(){placementHold?.cancel();placementHold=null;}
     const transition=createGrowTransition({content:node,reveal:[...node.querySelectorAll('[role="option"]')],onStateChange(state){
+      if(state==='opening'||state==='closing')holdPlacement();
+      else releasePlacement();
       if(disposed||state!=='closed'||desired.current)return;
       setOpen(false);
       if(pending.current!==null){const next=pending.current;pending.current=null;onChange(next);}
     }});
     motion.current=transition;
     const frame=requestAnimationFrame(()=>{if(desired.current)transition.open();});
-    return()=>{disposed=true;cancelAnimationFrame(frame);transition.destroy();motion.current=null;};
+    return()=>{disposed=true;cancelAnimationFrame(frame);transition.destroy();releasePlacement();motion.current=null;};
   },[node]);
   return <Select open={open} onOpenChange={request} value={value} onValueChange={next=>{pending.current=next;request(false);}}>
     <MotionHint name={name} disabled={open}><SelectTrigger aria-label={name} className="inline-motion-select"><SelectValue/></SelectTrigger></MotionHint>
@@ -145,6 +158,7 @@ function HtmlEditor({code,onChange,onRun}){
     const tags=[...text.matchAll(openingTag)].map(tag=>({tag,attrs:[...tag[0].matchAll(attributePattern)]}));
     const linkedIds=new Set();
     const attrValue=attr=>attr[2]??attr[3]??attr[4];
+    const elementIds=new Set(tags.flatMap(({attrs})=>attrs.filter(attr=>attr[1]==='id').map(attrValue)));
     for(const {attrs} of tags){
       if(attrs.some(attr=>attr[1]==='data-motion'||attr[1]==='class'&&/\bmotion-/.test(attrValue(attr)))){
         const id=attrs.find(attr=>attr[1]==='id');if(id)linkedIds.add(attrValue(id));
@@ -162,12 +176,20 @@ function HtmlEditor({code,onChange,onRun}){
       const relevant=name.startsWith('data-motion')||name==='id'&&linkedIds.has(value)||
         name==='class'&&/\bmotion-/.test(value)||motionNode&&['hidden','aria-controls','aria-expanded'].includes(name);
       if(!relevant)continue;
+      const complete=isChoice||name==='id'&&linkedIds.has(value)||
+        name==='aria-expanded'&&['true','false'].includes(value)||
+        name==='aria-controls'&&elementIds.has(value)||
+        name==='data-motion-trigger'&&value?.startsWith('#')&&elementIds.has(value.slice(1));
       const end=tag.index+attr.index+attr[0].length;
       const start=tag.index+attr.index+attr[0].search(/\S/);
       const valueEnd=end-(attr[2]!==undefined||attr[3]!==undefined?1:0);
       const valueStart=valueEnd-(value?.length??0);
-      // Keep the value editable while the caret is inside it.
-      if(caret>start&&caret<end){editableAttributes.current.push({start,end});continue;}
+      // Recognized complete values become widgets immediately, even when the
+      // closing quote was already present while the value was being repaired.
+      if(caret>start&&caret<end){
+        if(complete)caret=end;
+        else {editableAttributes.current.push({start,end});continue;}
+      }
       appendText(start);
       const widget=document.createElement('span');
       widget.contentEditable='false';
