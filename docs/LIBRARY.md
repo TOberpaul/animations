@@ -362,3 +362,19 @@ transition.destroy();
 `on` accepts `click`, `hover`, `focus`, `observer`, or `manual`. Options override HTML attributes: `data-motion-on`, `data-motion-dismiss="outside|none"`, `data-motion-escape="true|false"`, and `data-motion-once="true|false"`. Default activation is click; default outside dismissal is none; Escape defaults to enabled for click/hover/focus. Hover supports native button clicks for keyboard and touch, a 160ms exit delay via `--motion-duration-hover-close`, and keeps the target open while focus remains inside. Focus activation follows focus across the trigger and content. Observer accepts the same options as `observeMotion()` through `observer`, with repeated entry by default. Pass `observeElement` for a stable visible slot when the animated content is hidden. Manual activation only wires explicitly configured close/dismiss behavior.
 
 For an existing controller use `const unbind = bindMotionInteractions({content: target, trigger, transition, on: "click"})`. Call `unbind()` on unmount before destroying that controller. Binding does not change layout, hidden/inert state, ARIA attributes or focus; these stay component-owned. The optional `onDismiss(event)` callback lets the component decide how to restore focus before outside-click or Escape dismissal. Trigger elements should be native buttons so keyboard activation works without custom key handlers.
+
+### Activation reference
+
+| data-motion-on | Opens | Closes | Default |
+| --- | --- | --- | --- |
+| click | Click, tap or native button keyboard activation | Activate the trigger again | Yes |
+| hover | Mouse entry; click fallback for keyboard and touch | Mouse exit after delay, when focus is outside both elements | No |
+| focus | Focus enters trigger or target | Focus leaves both elements | No |
+| observer | Viewport entry (15% visibility by default) | Full viewport exit unless once is enabled | No |
+| manual | Controller calls | Controller calls or explicit dismissal | No |
+
+| Attribute | Values | Behavior | Default |
+| --- | --- | --- | --- |
+| data-motion-dismiss | outside / none | Close on outside click, or require explicit closing | none |
+| data-motion-escape | true / false | Allow Escape dismissal | true for click, hover and focus; false otherwise |
+| data-motion-once | true / false | Reveal only once with observer activation | false |

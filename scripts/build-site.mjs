@@ -2,7 +2,7 @@ import {cp,mkdir,writeFile} from 'node:fs/promises';
 await mkdir('site/examples',{recursive:true});
 await cp('dist','site/dist',{recursive:true});
 await cp('docs','site/docs',{recursive:true});
-for(const file of ['index.html','playground.css','code-preview.css','code-preview.js','motion-settings.js','provider.css'])
+for(const file of ['index.html','page-spacing.css','playground.css','code-preview.css','code-preview.js','motion-settings.js','provider.css'])
   await cp(`examples/${file}`,`site/examples/${file}`);
 for(const provider of ['db-react','shadcn']){
   await mkdir(`site/examples/${provider}`,{recursive:true});

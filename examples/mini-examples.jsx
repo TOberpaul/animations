@@ -1,3 +1,4 @@
+import {PageHeader} from './page-header.jsx';
 import {flushSync} from 'react-dom';
 import React,{useLayoutEffect,useRef,useState} from 'react';
 import {createMorphTransition,createSlideTransition,createGrowTransition,bindOutsideDismiss} from '../dist/index.js';
@@ -6,6 +7,10 @@ export function Chevron(){return <svg width="16" height="16" viewBox="0 0 24 24"
 
 export function Example({name,component,state,children,className=''}){
   return <section className={`mini-example ${className}`}><header><h3>{name}</h3><output>{state}</output></header><div className="mini-stage">{children}</div><small>{component}</small></section>;
+}
+
+export function ExamplesIntro(){
+ return <PageHeader title="Examples">Explore motion across menus, overlays, navigation and page content. Compare component sets and adjust the settings to see how each behavior responds.</PageHeader>;
 }
 
 export function ExampleSection({title,description,children}){

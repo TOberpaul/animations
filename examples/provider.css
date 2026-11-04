@@ -90,3 +90,5 @@ body{margin:0;min-width:0}
 html body{background:var(--gallery-background)!important;color:var(--gallery-foreground);margin:0;font-family:ui-sans-serif,system-ui,sans-serif}.mini-grid{background:var(--gallery-background);color:var(--gallery-foreground)}.example-section-heading{color:var(--gallery-foreground)}.example-section-heading p{color:var(--gallery-muted);opacity:1}.mini-example{background:var(--gallery-background);border-color:var(--gallery-border)}.mini-example>header{color:var(--gallery-foreground);border-bottom-color:var(--gallery-divider)}.mini-example>header h3{font:600 14px/1.4 ui-sans-serif,system-ui,sans-serif;color:inherit;letter-spacing:normal}.mini-example>header output,.mini-example>small{color:var(--gallery-muted);opacity:1}.example-section-heading h2{font:600 22px/1.4 ui-sans-serif,system-ui,sans-serif;letter-spacing:normal}
 
 .mini-grid{max-width:1072px}
+
+.mini-grid{max-width:calc(var(--site-content-width) + var(--page-gutter)*2);padding:var(--page-entry) var(--page-gutter);gap:var(--page-section-gap)}.example-section-heading{margin-bottom:var(--page-heading-gap)}.example-section-heading p{margin-top:12px}
