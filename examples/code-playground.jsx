@@ -115,6 +115,7 @@ function HtmlEditor({code,onChange,onRun}){
   const editor=useRef(null);
   const source=useRef(null);
   const roots=useRef([]);
+  const editableAttributes=useRef([]);
   function clearRoots(){const previous=roots.current;roots.current=[];queueMicrotask(()=>previous.forEach(root=>root.unmount()));}
   useEffect(()=>()=>clearRoots(),[]);
 
@@ -122,6 +123,7 @@ function HtmlEditor({code,onChange,onRun}){
     const field=editor.current;
     if(!field)return;
     clearRoots();
+    editableAttributes.current=[];
     const fragment=document.createDocumentFragment();
     const tokens=htmlTokens(text);
     let cursor=0,caretNode,caretOffset=0;
@@ -155,6 +157,7 @@ function HtmlEditor({code,onChange,onRun}){
       const name=attr[1],choices=attributeChoices[name];
       const value=attrValue(attr);
       const isChoice=choices?.includes(value);
+      if(choices&&!isChoice)continue;
       const motionNode=attrs.some(item=>item[1]==='id'&&linkedIds.has(attrValue(item)));
       const relevant=name.startsWith('data-motion')||name==='id'&&linkedIds.has(value)||
         name==='class'&&/\bmotion-/.test(value)||motionNode&&['hidden','aria-controls','aria-expanded'].includes(name);
@@ -164,7 +167,7 @@ function HtmlEditor({code,onChange,onRun}){
       const valueEnd=end-(attr[2]!==undefined||attr[3]!==undefined?1:0);
       const valueStart=valueEnd-(value?.length??0);
       // Keep the value editable while the caret is inside it.
-      if(caret>start&&caret<end)continue;
+      if(caret>start&&caret<end){editableAttributes.current.push({start,end});continue;}
       appendText(start);
       const widget=document.createElement('span');
       widget.contentEditable='false';
@@ -226,6 +229,22 @@ function HtmlEditor({code,onChange,onRun}){
     return {start,end:start+read(range.cloneContents()).length};
   }
 
+  useEffect(()=>{
+    let frame=0;
+    function reconcile(){
+      cancelAnimationFrame(frame);
+      frame=requestAnimationFrame(()=>{
+        if(!editableAttributes.current.length||document.activeElement!==editor.current)return;
+        const selection=selectionOffsets();
+        if(!selection||selection.start!==selection.end)return;
+        if(editableAttributes.current.some(({start,end})=>selection.start>start&&selection.start<end))return;
+        render(source.current,selection.start);
+      });
+    }
+    document.addEventListener('selectionchange',reconcile);
+    return()=>{cancelAnimationFrame(frame);document.removeEventListener('selectionchange',reconcile);};
+  },[]);
+
   function insert(text){
     const range=selectionOffsets();
     if(range)commit(source.current.slice(0,range.start)+text+source.current.slice(range.end),range.start+text.length);
@@ -238,6 +257,9 @@ function HtmlEditor({code,onChange,onRun}){
       commit(read(editor.current),selectionOffsets()?.start);
     }}
     onCompositionEnd={()=>commit(read(editor.current),selectionOffsets()?.start)}
+    onBlur={event=>{
+      if(editableAttributes.current.length&&!editor.current.contains(event.relatedTarget))render(source.current);
+    }}
     onPaste={event=>{event.preventDefault();insert(event.clipboardData.getData('text/plain'));}}
     onCopy={event=>{
       const range=selectionOffsets();
