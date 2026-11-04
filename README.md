@@ -69,7 +69,7 @@ slide. Content uses a fixed slide + blur + fade combination.
 - Easing: symmetric ease-in-out.
 - Overshoot: **15% of the shorter side, capped at .75rem**.
 - Playground progression: enabled, **24ms** start spacing.
-- Library progression: opt-in through CSS tokens.
+- Library progression: enabled by default; set `--motion-content-progressive: 0` to disable.
 - Reduced motion: respects the OS preference and the playground switch.
 
 The DB integration uses installed DB component/theme packages. Optional licensed

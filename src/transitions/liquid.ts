@@ -95,8 +95,8 @@ export function createLiquidMorphTransition(options: LiquidMorphOptions): Liquid
     // translucent backgrounds so the unchanged trigger cannot show through.
     const backgroundFrom = replacesTrigger ? closed!.background : visibleBackground(trigger), backgroundTo = visibleBackground(content);
     const borderFrom = replacesTrigger ? closed!.border : triggerStyle.borderTopColor, borderTo = style.borderTopColor;
-    const swell = overshootToken(content, 'liquid-trigger-overshoot',sw,sh);
-    const overshoot = overshootToken(content, 'liquid-overshoot',width,height);
+    const swell = overshootToken(content, 'overshoot-max',sw,sh);
+    const overshoot = overshootToken(content, 'overshoot-max',width,height);
     const volume = numberToken(content, 'liquid-volume-offset'), peak = numberToken(content, 'liquid-peak-offset');
     const end = numberToken(content, 'liquid-geometry-end');
     if (!(swell >= 0 && overshoot >= 0 && volume > 0 && volume < peak && peak < end && end < 1)) throw new Error('Invalid liquid geometry tokens.');

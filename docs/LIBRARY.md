@@ -152,8 +152,7 @@ prepare a surface with the input's background, border and radius before the
 motion snapshot. During travel, prevent the inner control from painting a second
 border/background; restore native styles at rest and on cleanup.
 
-The Rename example contains this adapter for DBInput and shadcn Input. It is not
-a universal automatic material detector. An `<input>` cannot display temporary
+Material detection is not automatic for composite controls. An `<input>` cannot display temporary
 child surfaces, so animate a surrounding element. Let only the foreground text
 participate in reveal effects. Native validation and focus styles remain the
 component's responsibility.
@@ -161,13 +160,11 @@ component's responsibility.
 ### Slide
 
 `side` accepts `top`, `right`, `bottom`, `left`. Translation does not overshoot
-past its final position. Optional surface stretching grows on the leading edge,
-stops travelling at `--motion-slide-arrive-offset`, then contracts in place.
+past its final position and does not stretch or resize the container.
 
 `mode: 'shift'` shifts an existing strip, retaining its closed visual state.
 Use `outgoing` for the old pane and `reveal` for the incoming pane. The submenu
 slides horizontally; its inner content has fade/blur only, no vertical slide.
-The playground's drawer and notification examples use Grow instead of Slide.
 
 ## Declarative code integration
 
@@ -196,7 +193,7 @@ const transition = createMotion({
 
 | Attribute | Values / purpose |
 | --- | --- |
-| `data-motion` | `grow`, `extract`, `morph`, `slide`, `content` |
+| `data-motion` | `grow`, `extract`, `morph`, `slide`, `fade` |
 | Matching class instead | `motion-grow`, `motion-extract`, `motion-morph`, `motion-slide`, `motion-fade` |
 | `data-motion-trigger` | Trigger selector, e.g. `#open`; required for extract/morph unless `trigger` is passed; optional for trigger-edge Grow |
 | `data-motion-reveal` | Selector for inner reveal targets; default: direct HTML children |
@@ -231,7 +228,7 @@ reveal timing in component reveals. Root pseudo icons participate via
 `revealPseudoElements` and `data-motion-before-order` / `data-motion-after-order`.
 
 The notifications demonstrate icon first, headline + description second, close
-button third. DB dialog/drawer headers and footers form groups so their dividers
+button third. Dialog/drawer headers and footers form groups so their dividers
 fade and blur with them.
 
 ### Surface followed by contents, with overlapping motion
@@ -302,12 +299,11 @@ can be overridden locally on a surface or globally.
 
 | Token | Library default / meaning |
 | --- | --- |
-| `--motion-duration-default` | `300ms`; aliases for morph, scale, liquid, slide, content, backdrop |
+| `--motion-duration` | `300ms`; aliases for morph, scale, liquid, slide, content, backdrop |
 | `--motion-easing-standard` | `cubic-bezier(.42, 0, .58, 1)`; symmetric open/close |
 | `--motion-overshoot-min` | `15%` of the surface's shorter side |
-| `--motion-liquid-trigger-overshoot` | `.75rem` cap for symmetric trigger volume |
-| `--motion-liquid-overshoot` | `.75rem` target cap; morph/scale/slide alias this |
-| `--motion-content-progressive` | `0` in library CSS; enabled by default in playground |
+| `--motion-overshoot-max` | `.75rem` cap shared by trigger and target; morph/scale alias this |
+| `--motion-content-progressive` | `1` (enabled by default); set to `0` to disable |
 | `--motion-content-stagger` | `.08`, fraction of base duration for Content |
 | `--motion-component-content-offset` / `end` | `.4` / `1` for ordinary progressive component reveals |
 | `--motion-component-content-stagger` / `stagger-span` | `.04` / `.12`; bounds for component reveals |
@@ -325,81 +321,16 @@ expands symmetrically; target expansion follows its anchor. Upper-right targets
 grow left/down, center targets in every direction, width-only panels horizontally.
 Set the caps to `0rem` to disable overshoot. Rem lengths follow the document root.
 
-The playground's gap control is expressed in milliseconds and converts that
-value into the duration-relative tokens for both providers and Code preview.
-Defaults: 24ms gap, 300ms duration, overshoot/progression enabled. Component gaps
-are bounded by their fixed duration; Content timelines extend instead.
+Component progression is bounded by its fixed duration; Content timelines extend instead.
 
 ## Reduced motion and cleanup
 
 The core respects `prefers-reduced-motion` and settles immediately at stable
-endpoints. The playground also provides an explicit switch by setting duration
-tokens to zero. Viewport observers show visible blocks without delays for OS
+endpoints. To disable motion explicitly, set the duration tokens to zero. Viewport observers show visible blocks without delays for OS
 reduced motion. Always destroy controllers and disconnect observer integrations
 on unmount, and remove component event listeners. Do not remove a closing target
 before the `closed` callback if an exit animation is wanted.
 
-## Playground and validation
-
-Examples use installed DB React and shadcn/Radix components in separate themed
-iframes, sharing one shadcn shell. The Code playground uses plain HTML and the
-actual library exports as `motion`; `window.transition` connects its preview
-buttons and frame slider. HTML edits reload the preview, with local
-draft persistence and inline error reporting. Exported HTML imports the running
-server's library URL; replace that with your hosted library URL for distribution.
-
-```sh
-npm run build
-npm run build:examples
-npm run dev
-```
-
-Recent changes were checked with targeted Chromium visual/interaction checks.
-The repository also contains earlier automated tests; they were not run for
-this update. Generated builds and local visual-check scripts/screenshots are
-ignored. This library is a development package, not an npm-published release.
-
-## Source of truth
-
-- `src/behaviors.ts`: canonical names, content-effect policy and legacy-name
-  normalization. `getMotionKind(element)` is used by both `createMotion()` and
-  the sample component lifecycle. `motionBehaviors[kind].replacesTrigger`
-  describes whether that component must hide the original source.
-- `src/core/content-groups.ts`: content grouping, numeric order and pseudo-icon
-  participation. Examples do not maintain their own grouping algorithm.
-- `src/core/content-timing.ts`: bounded component windows and full-duration
-  per-item timelines, including start spacing.
-- `src/core/content-frames.ts`: the shared fade/blur recipe and optional Content
-  slide. Grow, Extract, Morph and Slide reveals do not add an independent slide.
-- `examples/motion-settings.js`: one shared mapping from playground controls to
-  CSS tokens, used by the provider canvas and the Code preview.
-
-The HTML editor loads a fixed preview adapter for component placement and presence, plus the library stylesheet. It no longer
-contains its own behavior-name lookup or an implicit card-specific sequence
-override. Known older shipped JavaScript starters are upgraded when restoring
-saved drafts; custom JavaScript is preserved. Explicit surface-first attributes
-remain supported for intentionally configured card sequences.
-
-If an Extract target overlaps the source, its temporary source foreground
-crossfades away instead of remaining painted over the target content. The real
-source is still retained; replacing Morph visibility remains component-owned.
-
-### Component integration details
-
-DB icon-only buttons use DBButton with the documented icon and noText props.
-The search input uses DBInput with type="search" and a Search label. Its
-wrapper and native magnifier reveal as a single group. shadcn icon-only
-buttons use the local Button size="icon" variant. The inline search starts
-empty and displays its placeholder until the user enters a query.
-
-The two-level Slide navigation uses the provider Card as its navigation
-surface. Cascading Grow uses a native HTML popover for the top layer, with
-separate provider Card surfaces for the branches.
-
-Use `data-motion-anchor="top-right"` to set an explicit growth origin. Supported values are `auto`, `center`, `top`, `right`, `bottom`, `left`, and the four corners (`top-left`, `top-right`, `bottom-left`, `bottom-right`). Grow expands from this origin; Extract and Morph use it for target overshoot direction. `auto` infers the anchor from trigger geometry. Final positioning remains owned by the component.
-
 ## Outside-click dismissal
 
-Dismissal is an optional component integration, separate from visual motion. Use `bindOutsideDismiss({elements: () => [trigger, target], enabled: () => transition.isOpen, onDismiss: () => transition.close()})`. The returned function removes the listener and must be called on unmount. Include all submenu panels in `elements`. Omit the binding or return false from `enabled` for persistent dialogs. Native component dismissal such as Radix should remain owned by that component.
-
-The HTML playground adapter supports `data-motion-dismiss="outside"` and `data-motion-dismiss="none"` as inline choices. This attribute is interpreted by the adapter, not the visual transition factory.
+Dismissal is an optional component integration, separate from visual motion. Use `bindOutsideDismiss({elements: () => [trigger, target], enabled: () => transition.isOpen, onDismiss: () => transition.close()})`. The returned function removes the listener and must be called on unmount. Include all submenu panels in `elements`. Omit the binding or return false from `enabled` for persistent dialogs. Native component dismissal should remain owned by that component.
