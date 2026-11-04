@@ -10,6 +10,7 @@ import {Minus,Plus} from 'lucide-react';
 const html=`<button id="trigger" aria-controls="target" aria-expanded="false">Open preview</button>
 <!-- Choose grow, extract, morph, slide or fade here. -->
 <section id="target" data-motion="grow" data-motion-trigger="#trigger"
+  data-motion-on="click" data-motion-once="false"
   data-motion-anchor="top-right"
   data-motion-dismiss="outside"
   hidden>
@@ -20,7 +21,11 @@ const html=`<button id="trigger" aria-controls="target" aria-expanded="false">Op
 const initial=html;
 // Upgrade only the old shipped starter; preserve custom JavaScript drafts.
 function isLegacyStarter(value){const text=value.replace(/\r\n/g,'\n');let hash=2166136261;for(const c of text)hash=Math.imul(hash^c.charCodeAt(0),16777619);return [[1397,2795611845],[1676,2059646928],[1672,2035835016]].some(([length,signature])=>text.length===length&&(hash>>>0)===signature);}
-function migrateTarget(text){return text.replace(/data-motion=("|')content\1/g,'data-motion=$1fade$1').replace(/\bid=("|')surface\1/g,'id=$1target$1').replace(/\baria-controls=("|')surface\1/g,'aria-controls=$1target$1').replace(/<[^>]+\bid=("|')target\1[^>]*>/g,tag=>tag.includes('data-motion-anchor')?tag:tag.replace(/>$/,' data-motion-anchor="auto">'));}
+function migrateTarget(text){return text.replace(/data-motion=("|')content\1/g,'data-motion=$1fade$1').replace(/\bid=("|')surface\1/g,'id=$1target$1').replace(/\baria-controls=("|')surface\1/g,'aria-controls=$1target$1').replace(/<[^>]+\bid=("|')target\1[^>]*>/g,tag=>{
+ if(!tag.includes('data-motion-anchor'))tag=tag.replace(/>$/,' data-motion-anchor="auto">');
+ if(!/\bdata-motion-on\s*=/.test(tag))tag=tag.replace(/>$/,' data-motion-on="click" data-motion-once="false">');
+ return tag;
+});}
 function restore(){try{
  const value=JSON.parse(localStorage.getItem('motion-code-playground'));
  if(typeof value==='string')return migrateTarget(value);
@@ -39,6 +44,9 @@ const openingTag=/<[a-z][\w:-]*(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
 const attributePattern=/\s+([^\s=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
 const attributeChoices={
   'data-motion':Object.keys(motionBehaviors),
+  'data-motion-on':['click','hover','focus','observer','manual'],
+  'data-motion-once':['false','true'],
+  'data-motion-escape':['true','false'],
   'data-motion-axis':['width','height'],
   'data-motion-anchor':['auto','top-left','top','top-right','left','center','right','bottom-left','bottom','bottom-right'],
   'data-motion-dismiss':['outside','none'],
@@ -71,6 +79,9 @@ function htmlTokens(text){
 
 const motionHelp={
   id:'Identifies this element so motion attributes can reference it.',
+  'data-motion-on':'Activates through click, hover, focus, screen entry or manual control.',
+  'data-motion-once':'For observer activation: reveal only once or reset after leaving the screen.',
+  'data-motion-escape':'Allow Escape to close this element.',
   'data-motion':'Chooses the motion behavior provided by the library.',
   'data-motion-trigger':'Connects this surface to its trigger using a CSS selector.',
   'data-motion-axis':'Limits growth to the horizontal or vertical axis.',

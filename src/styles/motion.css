@@ -1,6 +1,7 @@
 :root {
   --motion-overshoot-min: 15%;
   --motion-duration: 300ms;
+  --motion-duration-hover-close: 160ms;
   --motion-duration-content: var(--motion-duration);
   --motion-easing-content: var(--motion-easing-standard);
   --motion-content-distance: var(--motion-reveal-distance);

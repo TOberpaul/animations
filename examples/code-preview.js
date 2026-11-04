@@ -4,7 +4,14 @@ const trigger = document.querySelector('#trigger');
 const target = document.querySelector('#target');
 let restoreTriggerFocus = true;
 
-window.transition = motion.createMotion({
+window.transition = motion.createInteractiveMotion({
+  trigger,
+  observeElement: trigger,
+  close: document.querySelector('#close'),
+  onDismiss() {
+    restoreTriggerFocus = !(document.activeElement instanceof HTMLElement &&
+      document.activeElement !== document.body && !target.contains(document.activeElement));
+  },
   content: target,
   // Inner children reveal automatically. Override with reveal: [...elements].
   onStateChange(state) {
@@ -29,28 +36,11 @@ window.transition = motion.createMotion({
     target.hidden = state === 'closed';
     target.inert = state === 'closed';
     trigger.setAttribute('aria-expanded', String(state === 'opening' || state === 'open'));
-    if (state === 'open' && (motion.motionBehaviors[kind].replacesTrigger || document.activeElement === trigger)) {
+    if (state === 'open' && (target.dataset.motionOn??'click')==='click' && (motion.motionBehaviors[kind].replacesTrigger || document.activeElement === trigger)) {
       document.querySelector('#close')?.focus({preventScroll: true});
     }
-    if (state === 'closed' && restoreTriggerFocus) trigger.focus({preventScroll: true});
+    if (state === 'closed' && (target.dataset.motionOn??'click')==='click' && restoreTriggerFocus) trigger.focus({preventScroll: true});
   }
 });
-trigger.addEventListener('click', () => transition.toggle());
-document.querySelector('#close').addEventListener('click', () => transition.close());
-document.addEventListener('keydown', event => {
-  if (event.key === 'Escape') transition.close();
-});
-const unbindDismiss = motion.bindOutsideDismiss({
-  elements: () => [target, trigger],
-  enabled: () => target.dataset.motionDismiss !== 'none' &&
-    (target.dataset.motionDismiss === 'outside' || ['grow','extract','morph'].includes(motion.getMotionKind(target))) &&
-    ['opening','open'].includes(transition.state),
-  onDismiss() {
-    restoreTriggerFocus = !(document.activeElement instanceof HTMLElement &&
-      document.activeElement !== document.body && !target.contains(document.activeElement));
-    transition.close();
-  }
-});
-addEventListener('pagehide', unbindDismiss, {once:true});
+addEventListener('pagehide', () => transition.destroy(), {once:true});
 // On component unmount: transition.destroy();
-// Direct factories such as motion.createScaleTransition(...) also work.

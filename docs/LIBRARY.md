@@ -336,3 +336,29 @@ before the `closed` callback if an exit animation is wanted.
 ## Outside-click dismissal
 
 Dismissal is an optional component integration, separate from visual motion. Use `bindOutsideDismiss({elements: () => [trigger, target], enabled: () => transition.isOpen, onDismiss: () => transition.close()})`. The returned function removes the listener and must be called on unmount. Include all submenu panels in `elements`. Omit the binding or return false from `enabled` for persistent dialogs. Native component dismissal should remain owned by that component.
+
+## Optional interaction layer
+
+`createMotion()` and direct factories only create visual transitions. `createInteractiveMotion(options)` creates a declarative transition, attaches optional interactions, and cleans both up through `destroy()`. Do not add this binding alongside a component that already owns the same events.
+
+```ts
+const transition = createInteractiveMotion({
+  content: target,
+  trigger,
+  on: "hover",
+  dismiss: "outside",
+  escape: true,
+  close: closeButton,
+  onStateChange(state) {
+    if (state === "destroyed") return;
+    target.hidden = state === "closed";
+    target.inert = state === "closed" || state === "closing";
+  },
+});
+// On unmount:
+transition.destroy();
+```
+
+`on` accepts `click`, `hover`, `focus`, `observer`, or `manual`. Options override HTML attributes: `data-motion-on`, `data-motion-dismiss="outside|none"`, `data-motion-escape="true|false"`, and `data-motion-once="true|false"`. Default activation is click; default outside dismissal is none; Escape defaults to enabled for click/hover/focus. Hover supports native button clicks for keyboard and touch, a 160ms exit delay via `--motion-duration-hover-close`, and keeps the target open while focus remains inside. Focus activation follows focus across the trigger and content. Observer accepts the same options as `observeMotion()` through `observer`, with repeated entry by default. Pass `observeElement` for a stable visible slot when the animated content is hidden. Manual activation only wires explicitly configured close/dismiss behavior.
+
+For an existing controller use `const unbind = bindMotionInteractions({content: target, trigger, transition, on: "click"})`. Call `unbind()` on unmount before destroying that controller. Binding does not change layout, hidden/inert state, ARIA attributes or focus; these stay component-owned. The optional `onDismiss(event)` callback lets the component decide how to restore focus before outside-click or Escape dismissal. Trigger elements should be native buttons so keyboard activation works without custom key handlers.

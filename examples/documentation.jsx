@@ -3,7 +3,7 @@ import {motionBehaviors} from '../dist/index.js';
 import {Button} from './shadcn/components/ui/button';
 import {Download} from 'lucide-react';
 
-const sections=['Getting started','Behaviors','HTML attributes','Content and timing','Design tokens','Lifecycle and accessibility'];
+const sections=['Getting started','Behaviors','HTML attributes','Interaction triggers','Content and timing','Design tokens','Lifecycle and accessibility'];
 const slug=text=>text.toLowerCase().replaceAll(' ','-');
 function Code({children}){return <pre><code>{children}</code></pre>;}
 export function Documentation(){
@@ -58,6 +58,24 @@ trigger.addEventListener('click', () => transition.toggle());
  <dt>data-motion-axis / data-motion-side</dt><dd>Constrain Grow to width or height; choose top, right, bottom or left for Slide.</dd>
  <dt>data-motion-reveal</dt><dd>Selector for inner content targets. Include headings, icons, labels, dividers and controls.</dd>
  </dl></section>
+ <section id="interaction-triggers"><h2>Interaction triggers</h2><p>Use the optional interaction layer to connect an animation to user input or screen entry. The component still owns positioning, presence, accessibility and focus. Keep existing component event bindings, or use this layer; avoid binding the same action twice.</p><Code>{`<section id="target" data-motion="grow"
+  data-motion-trigger="#trigger" data-motion-on="click"
+  data-motion-dismiss="outside" data-motion-escape="true" hidden>
+  ...
+</section>
+
+const transition = createInteractiveMotion({
+  content: target,
+  trigger,
+  close: closeButton,
+  onStateChange(state) {
+    if (state === 'destroyed') return;
+    target.hidden = state === 'closed';
+    target.inert = state === 'closed' || state === 'closing';
+  },
+});
+// Removes listeners, timers, observers and animation effects:
+transition.destroy();`}</Code><dl><dt>data-motion-on</dt><dd>click toggles; hover opens on mouse entry with a short exit delay and a click fallback for keyboard/touch; focus stays open while focus is inside the trigger or target; observer opens on screen entry; manual only responds to controller calls.</dd><dt>data-motion-dismiss</dt><dd>outside closes on outside click; none disables it (default). Keep persistent dialogs on none.</dd><dt>data-motion-escape</dt><dd>Enable or disable Escape dismissal. Enabled by default for click, hover and focus activation.</dd><dt>data-motion-once</dt><dd>true reveals once for observer activation; false resets after full viewport exit (default). Use observeElement to observe a stable layout slot if the target is hidden.</dd></dl><p>For an existing controller, call bindMotionInteractions with the existing controller and on: 'hover'. It returns an unbind function. Unbind before destroying the controller. The hover exit delay uses --motion-duration-hover-close (160 ms).</p></section>
  <section id="content-and-timing"><h2>Content and timing</h2><p>The default duration is 300 ms. Progressive reveal is enabled by default. Set --motion-content-progressive to 0 to disable it. Each page content item retains its full duration; progression adds a gap between start times.</p><Code>{`target.style.setProperty('--motion-content-progressive', '1');
 target.style.setProperty('--motion-content-stagger', '.08');
 // Group related content and set its progression order:
