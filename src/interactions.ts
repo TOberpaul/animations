@@ -1,10 +1,11 @@
+import {bindScrollMotion,type ScrollMotionOptions} from './scroll.js';
 import {createMotion,type MotionOptions} from './declarative.js';
 import type {Transition} from './core/lifecycle.js';
 import {observeMotion,type ObserveMotionOptions} from './observe.js';
 import {bindOutsideDismiss} from './dismiss.js';
 import {duration} from './core/tokens.js';
 
-export type MotionActivation='click'|'hover'|'focus'|'observer'|'manual';
+export type MotionActivation='click'|'hover'|'focus'|'observer'|'scroll'|'manual';
 export interface MotionInteractionOptions {
   content:HTMLElement;
   transition:Transition;
@@ -16,6 +17,7 @@ export interface MotionInteractionOptions {
   /** Observe a stable layout slot when the animated content is hidden. */
   observeElement?:HTMLElement;
   observer?:ObserveMotionOptions;
+  scroll?:Omit<ScrollMotionOptions,'transition'>;
   /** Component-owned focus handling before an outside click or Escape closes. */
   onDismiss?:(event:Event)=>void;
 }
@@ -23,7 +25,7 @@ export interface MotionInteractionOptions {
 export function bindMotionInteractions(options:MotionInteractionOptions):()=>void{
   const {content,transition}=options,doc=content.ownerDocument;
   const mode=options.on??content.dataset.motionOn??'click';
-  if(!['click','hover','focus','observer','manual'].includes(mode))throw new Error('Invalid data-motion-on.');
+  if(!['click','hover','focus','observer','scroll','manual'].includes(mode))throw new Error('Invalid data-motion-on.');
   const selector=content.dataset.motionTrigger;
   const trigger=options.trigger??(selector?doc.querySelector<HTMLElement>(selector):undefined);
   if(['click','hover','focus'].includes(mode)&&!trigger)throw new Error(`${mode} activation requires a trigger.`);
@@ -62,6 +64,14 @@ export function bindMotionInteractions(options:MotionInteractionOptions):()=>voi
     listen(element,'focusin',()=>{cancel();if(mode==='focus')transition.open();});
     listen(element,'focusout',()=>{queueMicrotask(()=>{if(!disposed&&!inside(doc.activeElement)&&!(mode==='hover'&&(content.matches(':hover')||trigger!.matches(':hover'))))transition.close();});});
   }
+  if(mode==='scroll'){
+    const selector=content.dataset.motionScrollRoot;
+    const root=selector?doc.querySelector<HTMLElement>(selector):undefined;
+    if(selector&&!root)throw new Error('Invalid scroll root.');
+    const mode=content.dataset.motionScrollMode??'trigger';
+    if(mode!=='trigger'&&mode!=='scrub')throw new Error('Invalid scroll mode.');
+    cleanups.push(bindScrollMotion({transition,start:Number(content.dataset.motionScrollStart??0),end:content.dataset.motionScrollEnd===undefined?undefined:Number(content.dataset.motionScrollEnd),root:root??doc.defaultView!,mode,once:onceValue==='true',...options.scroll}));
+  }
   if(mode==='observer'){
     const observation=observeMotion([{element:options.observeElement??content,transition}],{
       once:onceValue==='true',...options.observer,
@@ -87,6 +97,7 @@ export function createInteractiveMotion(options:InteractiveMotionOptions):Transi
   catch(error){transition.destroy();throw error;}
   return {
     get state(){return transition.state;},get isOpen(){return transition.isOpen;},
+    seek:progress=>transition.seek(progress),
     open:()=>transition.open(),close:()=>transition.close(),toggle:()=>transition.toggle(),
     destroy(){unbind();transition.destroy();},
   };

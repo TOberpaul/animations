@@ -409,3 +409,33 @@ For a container use `data-motion-relative-to="#preview"`; for the screen use `vi
 Trigger placements sit outside its edge. Viewport and container placements sit inside the reference with the specified inset. Center overlays the reference center. Placement determines the final rectangle; `data-motion-anchor` independently determines the growth origin.
 
 For low-level transition factories, use `positionMotion({content, relativeTo, trigger, placement, space})`, call `update()` before opening, and `destroy()` on cleanup. The helper restores the inline positioning styles it owns. It does not portal, flip, clamp, track scrolling, or resize the target. Ancestor overflow still applies. The declarative factories update before each fresh opening; reversals retain their geometry. Call the standalone adapter's `update()` when your integration needs to reposition an already-open element.
+
+## Layout changes
+
+For component-owned layout changes, capture the current visual styles before changing a class or attribute, then animate to the new CSS layout:
+
+```ts
+const from = captureMotionLayout(element);
+element.classList.toggle('floating');
+const cancel = animateMotionLayout(element, from);
+// On unmount: cancel();
+```
+
+This optional adapter animates width, horizontal margins/padding and surface styling using the shared duration/easing tokens. Capture again before reversing an active change to continue from its current appearance. Reduced motion applies immediately. The consuming layout must reserve a stable vertical slot to avoid shifting surrounding content.
+
+## Scroll triggers and scrubbing
+
+```ts
+const disconnect = bindScrollMotion({
+  transition: motion,
+  root: scrollContainer, // defaults to window
+  start: 200,
+  end: 600,
+  mode: 'scrub',
+});
+// Cleanup: disconnect(); motion.destroy();
+```
+
+`trigger` opens at `start` and closes when scrolling back below it. Use `once: true` to keep it open. `scrub` maps start–end to 0–100% on the existing timeline and reverses with scroll direction. Offsets are absolute CSS pixels in the selected scroll root. Each controller also exposes `seek(progress)` for direct normalized scrubbing. Keep a stable layout slot for animated elements so hiding them does not change the scroll range. The integration still owns visibility, focus and accessibility; decorative scroll reveals should not move focus.
+
+For `createInteractiveMotion` use `data-motion-on="scroll"`, `data-motion-scroll-mode="trigger|scrub"`, `data-motion-scroll-start="200"`, `data-motion-scroll-end="600"` and optionally `data-motion-scroll-root="#scroller"`. `data-motion-once` applies to trigger mode only. Reduced motion uses stable endpoints rather than intermediate frames. Listeners and pending animation frames are removed on cleanup; there is no idle polling.

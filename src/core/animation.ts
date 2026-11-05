@@ -82,10 +82,26 @@ export function createTransition(options: Options, pattern: string, tracks: () =
       if (version === generation && state !== 'destroyed') settle();
     }).catch(() => { /* Cancellation is an expected part of cleanup. */ });
   }
+  function seek(progress:number){
+    if(!Number.isFinite(progress))throw new Error('Motion progress must be finite.');
+    if(state==='destroyed')return;
+    const p=Math.max(0,Math.min(1,progress));
+    if(reduced.matches){const next=p>=.5;if(next!==target)set(next);else if(animations.length)settle();return;}
+    if(!animations.length){
+      if((p===0&&state==='closed')||(p===1&&state==='open'))return;
+      set(state!=='open');
+    }
+    if(!animations.length)return;
+    generation++;
+    target=p>0;
+    animations.forEach(a=>{a.pause();a.currentTime=p*Number(a.effect!.getTiming().duration);});
+    if(p===0||p===1)settle();else if(state!=='opening')notify('opening');
+  }
   function preferenceChanged() { if (reduced.matches && animations.length) settle(); }
   reduced.addEventListener('change', preferenceChanged);
   return {
     get state() { return state; }, get isOpen() { return target; },
+    seek,
     open: () => set(true), close: () => set(false), toggle: () => set(!target),
     destroy() {
       if (state === 'destroyed') return;

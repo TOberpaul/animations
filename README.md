@@ -79,3 +79,13 @@ fallback icons where applicable. Keep credentials in ignored local environment
 files.
 
 Generated builds, dependencies and local visual-check output are ignored by Git.
+
+## AI coding clients
+
+A local read-only MCP server shares the guide, built API declarations, tokens and integration examples with compatible AI clients. See [AI integration setup](docs/AI_INTEGRATION.md). Start with `npm run build`, then configure `node /absolute/path/to/animations/ai/mcp-server.mjs` as a stdio MCP server. Portable integration rules are in `ai/INSTRUCTIONS.md`.
+
+## License and package releases
+
+Original library and MCP code is licensed under [MIT](LICENSE). Third-party example dependencies retain their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
+
+See [publishing](docs/PUBLISHING.md) for npm package validation and release steps. The registry package is not published yet.

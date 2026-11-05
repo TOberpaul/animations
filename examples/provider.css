@@ -92,3 +92,6 @@ html body{background:var(--gallery-background)!important;color:var(--gallery-for
 .mini-grid{max-width:1072px}
 
 .mini-grid{max-width:calc(var(--site-content-width) + var(--page-gutter)*2);padding:var(--page-entry) var(--page-gutter);gap:var(--page-section-gap)}.example-section-heading{margin-bottom:var(--page-heading-gap)}.example-section-heading p{margin-top:12px}
+@media(max-width:767.98px){.mini-grid>.page-header{padding-top:48px}}
+/* Same full-height scroll viewport and initial header spacer as Documentation. */
+.mini-grid{padding-top:calc(var(--shell-header-slot,96px) + var(--page-entry))}

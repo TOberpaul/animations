@@ -193,6 +193,7 @@ export function createLiquidMorphTransition(options: LiquidMorphOptions): Liquid
   }, { keepVisibleWhenClosed:sameElement });
   return {
     get state(){return raw.state;}, get isOpen(){return raw.isOpen;},
+    seek:progress=>raw.seek(progress),
     open:()=>raw.open(), close:()=>raw.close(), toggle:()=>raw.toggle(),
     destroy(){raw.destroy();closed=undefined;},
   };

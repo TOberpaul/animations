@@ -28,3 +28,6 @@ export type {MotionActivation,MotionInteractionOptions,InteractiveMotionOptions}
 
 export {positionMotion} from './position.js';
 export type {MotionPlacement,MotionPositionOptions} from './position.js';
+export {captureMotionLayout,animateMotionLayout} from './layout.js';
+export {bindScrollMotion} from './scroll.js';
+export type {ScrollMotionOptions} from './scroll.js';

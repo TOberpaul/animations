@@ -4,7 +4,12 @@
   "private": true,
   "type": "module",
   "files": [
-    "dist"
+    "dist",
+    "ai",
+    "docs/LIBRARY.md",
+    "docs/AI_INTEGRATION.md",
+    "docs/PUBLISHING.md",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "exports": {
     ".": {
@@ -19,7 +24,10 @@
     "build:shadcn": "node scripts/build-shadcn.mjs",
     "dev": "npm run build && npm run build:examples && node scripts/serve.mjs",
     "test": "npm run build && npm run build:examples && playwright test",
-    "build:site": "npm run build && npm run build:examples && node scripts/build-site.mjs"
+    "build:site": "npm run build && npm run build:examples && node scripts/build-site.mjs",
+    "mcp": "node ai/mcp-server.mjs",
+    "prepack": "npm run build",
+    "check:mcp": "node scripts/check-mcp.mjs"
   },
   "devDependencies": {
     "@db-ux/core-components": "6.2.0",
@@ -46,5 +54,37 @@
     "tailwindcss": "3.4.17",
     "typescript": "5.7.3",
     "picomatch": "4.0.7"
-  }
+  },
+  "description": "Framework-independent, reversible UI motion with CSS tokens and the Web Animations API.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TOberpaul/animations.git"
+  },
+  "homepage": "https://toberpaul.github.io/animations/",
+  "bugs": {
+    "url": "https://github.com/TOberpaul/animations/issues"
+  },
+  "keywords": [
+    "animation",
+    "motion",
+    "waapi",
+    "typescript",
+    "design-system",
+    "mcp"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "bin": {
+    "motion-library-mcp": "./ai/mcp-server.mjs"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT"
 }

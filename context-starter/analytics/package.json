@@ -1,0 +1,18 @@
+{
+  "name": "context-starter-analytics",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node serve.mjs"
+  },
+  "dependencies": {
+    "@design-system/motion": "file:../..",
+    "clsx": "2.1.1",
+    "esbuild": "0.21.5",
+    "postcss": "8.5.6",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "tailwind-merge": "2.6.0",
+    "tailwindcss": "3.4.17"
+  }
+}

@@ -1,0 +1,8 @@
+## Projektwissen und Arbeitspakete
+
+- Vor Änderungen die lokalen `AGENTS.md` entlang der betroffenen Pfade lesen.
+- Bei neuen oder geänderten Ressourcen im selben Änderungsschritt die lokale `AGENTS.md` anlegen oder aktualisieren, sobald dabei dauerhaftes Wissen entsteht oder sich ändert. Halte schwer erkennbare Entscheidungen, Invarianten und Prüfschritte knapp im engsten passenden Ordner fest. Passe veraltete Einträge an oder entferne sie. Jede Regel hat eine Quelle.
+- Bei unklarer Zuständigkeit die `INHALT.md` im Projektroot oder im betroffenen Bereich lesen. Bei neuen, verschobenen oder entfernten Bereichen und Einstiegspunkten die nächstgelegene passende `INHALT.md` im selben Änderungsschritt pflegen. Fehlt die Karte, lege sie an. Pro Eintrag genügen Zuständigkeit und Einstiegspfad.
+- Neue Umsetzungspakete vor der Bearbeitung in einer Zeile relativ schätzen. Verwende 1 (lokal und klar), 2 (begrenzte Untersuchung), 3 (bereichsübergreifend), 5 (grundlegende Änderung), 8 (mehrere gekoppelte Änderungen), 13 (größerer Umbau mit offenen Abhängigkeiten) oder 20 (sehr großer oder unsicherer Umbau). Umfang, Unsicherheit und Prüfaufwand berücksichtigen. Die Startschätzung bleibt erhalten.
+- Wenn du ein Paket in `.codex/context-packages.json` erfasst, leite selbst einen kurzen Namen aus dem Ziel ab und speichere ihn als `name`. Verwende bei Fortsetzungen denselben Eintrag.
+- Für ein eigenständiges neues Paket einen frischen Chat vorsehen. Bei langen Paketen am nächsten geprüften Zwischenstand einen Wechsel vorschlagen, sobald eine kurze Übergabe reicht. Für eine angeforderte Übergabe `$resume-work` verwenden.

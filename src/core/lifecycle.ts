@@ -5,6 +5,8 @@ export interface Transition {
   open(): void;
   close(): void;
   toggle(): void;
+  /** Pause at normalized timeline progress, including reverse scrubbing. */
+  seek(progress:number):void;
   destroy(): void;
 }
 export interface Options {

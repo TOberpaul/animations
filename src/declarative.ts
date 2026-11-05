@@ -23,7 +23,9 @@ function createVisualMotion(options:MotionOptions):Transition{
   const selector=content.dataset.motionTrigger;
   const trigger=options.trigger??(selector?content.ownerDocument.querySelector<HTMLElement>(selector):null);
   if(kind==='grow'){
-    const anchor=explicitMotionAnchor(content);
+    // Center placement overlaps the trigger, so grow locally rather than
+    // measuring an outside trigger edge that does not exist.
+    const anchor=explicitMotionAnchor(content)??(options.position?.placement==='center'?{x:.5,y:.5}:undefined);
     if(anchor)content.style.setProperty('--motion-scale-origin',`${anchor.x*100}% ${anchor.y*100}%`);
     const axis=content.dataset.motionAxis;
     if(axis&&axis!=='width'&&axis!=='height')throw new Error('data-motion-axis must be width or height.');
@@ -61,6 +63,7 @@ export function createMotion(options:MotionOptions):Transition{
  let transition:Transition;
  try{adapter.update();transition=createVisualMotion(options);}catch(error){adapter.destroy();throw error;}
  return {get state(){return transition.state;},get isOpen(){return transition.isOpen;},
+ seek(progress){if(transition.state==='closed'&&progress>0)adapter.update();transition.seek(progress);},
  open(){if(transition.state==='closed')adapter.update();transition.open();},close(){transition.close();},
  toggle(){if(transition.isOpen)transition.close();else this.open();},
  destroy(){transition.destroy();adapter.destroy();}};
