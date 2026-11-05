@@ -5,7 +5,7 @@ export function motionSettingsTokens(settings){
  const time=`${reduced?0:settings.duration}ms`,stagger=String((settings.progressionGap??24)/Math.max(1,settings.duration));
  return {
   '--motion-duration':time,
-  ...Object.fromEntries(['slide','backdrop','content','scale','morph','liquid'].map(pattern=>[`--motion-duration-${pattern}`,time])),
+  ...Object.fromEntries(['slide','backdrop','content','scale','morph','transfer'].map(pattern=>[`--motion-duration-${pattern}`,time])),
   '--motion-overshoot-min':`${settings.overshootMinimum??15}%`,
   '--motion-overshoot-max':`${settings.overshoot===false?0:settings.overshootMax??.75}rem`,
   '--motion-content-progressive':settings.progressive?'1':'0',

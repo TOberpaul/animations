@@ -3,7 +3,7 @@ import { overshootToken, numberToken, token } from '../core/tokens.js';
 import type { MotionState, Options, Transition } from '../core/lifecycle.js';
 import { componentCorners } from '../core/rounded-shape.js';
 import { growthAnchor, growthInsets, explicitMotionAnchor } from '../core/geometry.js';
-export interface LiquidMorphOptions extends Options {
+export interface SurfaceTransferOptions extends Options {
   /** Distinct node: retain the source. Same node as content: become the target.
    * For the same node, prepare the expanded layout synchronously on opening
    * and restore its compact layout only on closed. Initialize closed. */
@@ -12,7 +12,6 @@ export interface LiquidMorphOptions extends Options {
    * trigger. The component hides/shows that trigger in onStateChange. */
   replaceTrigger?: boolean;
 }
-export type LiquidMorphTransition = Transition;
 
 function copyTrigger(trigger:HTMLElement):HTMLElement {
   const clone=trigger.cloneNode(true) as HTMLElement;
@@ -41,11 +40,11 @@ function visibleBackground(element: HTMLElement): string {
   return `rgb(${r},${g},${b})`;
 }
 
-/** One liquid behavior for separate surfaces and a trigger becoming the target. */
-export function createLiquidMorphTransition(options: LiquidMorphOptions): LiquidMorphTransition {
+/** Shared surface and foreground animation for Extract and Morph. */
+export function createSurfaceTransfer(options: SurfaceTransferOptions): Transition {
   const sameElement=options.trigger===options.content;
   const replacesTrigger=sameElement||options.replaceTrigger;
-  if(replacesTrigger&&options.initiallyOpen)throw new Error('A replacing liquid morph must initialize in its closed layout.');
+  if(replacesTrigger&&options.initiallyOpen)throw new Error('A replacing transfer morph must initialize in its closed layout.');
   let previous:MotionState=options.initiallyOpen?'open':'closed';
   let closed: {rect:DOMRect; background:string; border:string; borders:string[]; copy:HTMLElement} | undefined;
   let overlay: HTMLDivElement | undefined;
@@ -74,7 +73,7 @@ export function createLiquidMorphTransition(options: LiquidMorphOptions): Liquid
     previous=state;
     if (state === 'open' || state === 'closed' || state === 'destroyed') { remove(); }
     options.onStateChange?.(state);
-  } }, 'liquid', () => {
+  } }, 'transfer', () => {
     remove();
     const { content, trigger } = options;
     const box = content.getBoundingClientRect(), source = replacesTrigger ? closed!.rect : trigger.getBoundingClientRect();
@@ -83,7 +82,7 @@ export function createLiquidMorphTransition(options: LiquidMorphOptions): Liquid
     const extraY = px(style.borderTopWidth) + px(style.borderBottomWidth) + px(style.paddingTop) + px(style.paddingBottom);
     const width = px(style.width) + (style.boxSizing === 'border-box' ? 0 : extraX);
     const height = px(style.height) + (style.boxSizing === 'border-box' ? 0 : extraY);
-    if (!width || !height || !source.width || !source.height) throw new Error('Liquid morph elements must be measurable.');
+    if (!width || !height || !source.width || !source.height) throw new Error('Surface transfer elements must be measurable.');
     const scaleX = box.width / width, scaleY = box.height / height;
     const left = (source.left - box.left) / scaleX, top = (source.top - box.top) / scaleY;
     const sw = source.width / scaleX, sh = source.height / scaleY;
@@ -97,9 +96,9 @@ export function createLiquidMorphTransition(options: LiquidMorphOptions): Liquid
     const borderFrom = replacesTrigger ? closed!.border : triggerStyle.borderTopColor, borderTo = style.borderTopColor;
     const swell = overshootToken(content, 'overshoot-max',sw,sh);
     const overshoot = overshootToken(content, 'overshoot-max',width,height);
-    const volume = numberToken(content, 'liquid-volume-offset'), peak = numberToken(content, 'liquid-peak-offset');
-    const end = numberToken(content, 'liquid-geometry-end');
-    if (!(swell >= 0 && overshoot >= 0 && volume > 0 && volume < peak && peak < end && end < 1)) throw new Error('Invalid liquid geometry tokens.');
+    const volume = numberToken(content, 'transfer-volume-offset'), peak = numberToken(content, 'transfer-peak-offset');
+    const end = numberToken(content, 'transfer-geometry-end');
+    if (!(swell >= 0 && overshoot >= 0 && volume > 0 && volume < peak && peak < end && end < 1)) throw new Error('Invalid transfer geometry tokens.');
     // The initial volume phase swells the trigger symmetrically. Only the target
     // grows away from its component-owned anchor; preserve their envelope.
     const anchor=explicitMotionAnchor(content)??growthAnchor(source,box);
@@ -133,8 +132,8 @@ export function createLiquidMorphTransition(options: LiquidMorphOptions): Liquid
     triggerCopy = replacesTrigger ? closed!.copy.cloneNode(true) as HTMLElement : copyTrigger(trigger);
     Object.assign(triggerCopy.style,{position:'absolute',left:(left-px(style.borderLeftWidth))+'px',top:(top-px(style.borderTopWidth))+'px',width:sw+'px',height:sh+'px',boxSizing:'border-box',margin:'0',transform:'none',transition:'none',animation:'none',background:'transparent',borderColor:'transparent',boxShadow:'none',pointerEvents:'none',zIndex:'0'});
     content.append(triggerCopy);
-    const revealStart=numberToken(content,'liquid-reveal-offset'),revealEnd=numberToken(content,'liquid-reveal-end');
-    if(revealStart<0||revealStart>=revealEnd||revealEnd>1)throw new Error('Invalid liquid reveal offsets.');
+    const revealStart=numberToken(content,'transfer-reveal-offset'),revealEnd=numberToken(content,'transfer-reveal-end');
+    if(revealStart<0||revealStart>=revealEnd||revealEnd>1)throw new Error('Invalid transfer reveal offsets.');
     const clipFrames:Keyframe[]=[];
     // Include the exact volume/peak poses, so frame inspection
     // reach the configured percentage without resampling error.
@@ -173,11 +172,11 @@ export function createLiquidMorphTransition(options: LiquidMorphOptions): Liquid
     ];
     const overlapsTarget=source.left<box.right&&source.right>box.left&&source.top<box.bottom&&source.bottom>box.top;
     if(replacesTrigger||overlapsTarget){
-      const hideStart=numberToken(content,'liquid-source-hide-start');
-      const hideEnd=numberToken(content,'liquid-source-hide-end');
-      const blur=token(content,'liquid-source-blur');
-      if(hideStart<0||hideStart>=hideEnd||hideEnd>1)throw new Error('Liquid source hide offsets must satisfy 0 <= start < end <= 1.');
-      if(!CSS.supports('filter',`blur(${blur})`))throw new Error('Liquid source blur must be a valid non-negative CSS length.');
+      const hideStart=numberToken(content,'transfer-source-hide-start');
+      const hideEnd=numberToken(content,'transfer-source-hide-end');
+      const blur=token(content,'transfer-source-blur');
+      if(hideStart<0||hideStart>=hideEnd||hideEnd>1)throw new Error('Transfer source hide offsets must satisfy 0 <= start < end <= 1.');
+      if(!CSS.supports('filter',`blur(${blur})`))throw new Error('Transfer source blur must be a valid non-negative CSS length.');
       const sourceStyle=getComputedStyle(triggerCopy),filter=sourceStyle.filter;
       const blurred=`${filter==='none'?'':`${filter} `}blur(${blur})`;
       // Crossfade both contents over the same interval, without moving the

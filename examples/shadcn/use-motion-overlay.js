@@ -3,7 +3,7 @@ import { createGrowTransition, createExtractTransition, createMorphTransition, c
 
 // Radix owns presence, placement, focus and dismissal. Keep its controlled open
 // state until the reversible exit finishes; only then let Radix unmount.
-export function useMotionOverlay(name, kind, liquid=false,grow=false,replaceTrigger=false) {
+export function useMotionOverlay(name, kind, extract=false,grow=false,replaceTrigger=false) {
   const [present, setPresent] = useState(false), [state, setState] = useState('closed');
   const [node, contentRef] = useState(null);
   const trigger = useRef(null), backdrop = useRef(null), controller = useRef(null);
@@ -46,7 +46,7 @@ export function useMotionOverlay(name, kind, liquid=false,grow=false,replaceTrig
       if (next === 'closed' && !desired.current) setPresent(false);
     } };
     const transition = kind === 'menu'
-      ? (replaceTrigger ? createMorphTransition : liquid ? createExtractTransition : createGrowTransition)({ ...options, trigger: trigger.current, replaceTrigger })
+      ? (replaceTrigger ? createMorphTransition : extract ? createExtractTransition : createGrowTransition)({ ...options, trigger: trigger.current, replaceTrigger })
       : kind === 'dialog' || grow
       ? createGrowTransition({ ...options, axis:grow&&kind==='sheet'?'width':undefined, backdrop: backdrop.current })
       : createSlideTransition({ ...options, side: 'right', backdrop: kind === 'sheet' ? backdrop.current : undefined });
@@ -70,7 +70,7 @@ export function useMotionOverlay(name, kind, liquid=false,grow=false,replaceTrig
       timers.current.forEach(clearTimeout); transition.destroy(); controller.current = null;
       delete window.shadcnMotionDemo[name];
     };
-  }, [node, kind, name, request, liquid, replaceTrigger]);
+  }, [node, kind, name, request, extract, replaceTrigger]);
   const stress = () => {
     timers.current.forEach(clearTimeout);
     request(true);

@@ -1,7 +1,7 @@
-import { createLiquidMorphTransition, type LiquidMorphOptions } from './liquid.js';
+import { createSurfaceTransfer, type SurfaceTransferOptions } from './surface-transfer.js';
 import type { Transition } from '../core/lifecycle.js';
-export type ExtractOptions = Omit<LiquidMorphOptions,'replaceTrigger'>;
+export type ExtractOptions = Omit<SurfaceTransferOptions,'replaceTrigger'>;
 /** Extract a new surface while retaining the original trigger. */
 export function createExtractTransition(options:ExtractOptions):Transition{
-  return createLiquidMorphTransition({...options,replaceTrigger:false});
+  return createSurfaceTransfer({...options,replaceTrigger:false});
 }

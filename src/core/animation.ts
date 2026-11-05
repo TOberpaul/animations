@@ -41,7 +41,7 @@ export function createTransition(options: Options, pattern: string, tracks: () =
         if (!time) { settle(); return; }
         const requestedEasing = token(content, `easing-${pattern}`);
         const easing = CSS.supports('animation-timing-function', requestedEasing) ? requestedEasing : token(content, 'easing-standard');
-        const recipe=motionBehaviors[(pattern==='scale'?'grow':pattern==='liquid'?'extract':pattern==='content'?'fade':pattern) as keyof typeof motionBehaviors];
+        const recipe=motionBehaviors[(pattern==='scale'?'grow':pattern==='transfer'?'extract':pattern==='content'?'fade':pattern) as keyof typeof motionBehaviors];
         const descriptions = tracks();
         time *= behavior.durationScale?.() ?? 1;
         const reveal = options.reveal ? (Array.isArray(options.reveal) ? options.reveal : [options.reveal]) : [];

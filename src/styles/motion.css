@@ -58,19 +58,19 @@
   --motion-scale-origin: center center;
   --motion-slide-distance: 100%;
   --motion-slide-peak-offset: .8;
-  --motion-duration-liquid: var(--motion-duration);
-  --motion-easing-liquid: var(--motion-easing-standard);
-  --motion-liquid-geometry-end: .8;
-  --motion-liquid-reveal-offset: .3;
-  --motion-liquid-reveal-end: var(--motion-liquid-geometry-end);
-  --motion-liquid-reveal-blur: var(--motion-reveal-blur);
-  --motion-liquid-volume-offset: .18;
-  --motion-liquid-source-hide-start: var(--motion-liquid-reveal-offset);
-  --motion-liquid-source-hide-end: var(--motion-liquid-reveal-end);
-  --motion-liquid-source-blur: var(--motion-liquid-reveal-blur);
-  --motion-liquid-peak-offset: .5;
+  --motion-duration-transfer: var(--motion-duration);
+  --motion-easing-transfer: var(--motion-easing-standard);
+  --motion-transfer-geometry-end: .8;
+  --motion-transfer-reveal-offset: .3;
+  --motion-transfer-reveal-end: var(--motion-transfer-geometry-end);
+  --motion-transfer-reveal-blur: var(--motion-reveal-blur);
+  --motion-transfer-volume-offset: .18;
+  --motion-transfer-source-hide-start: var(--motion-transfer-reveal-offset);
+  --motion-transfer-source-hide-end: var(--motion-transfer-reveal-end);
+  --motion-transfer-source-blur: var(--motion-transfer-reveal-blur);
+  --motion-transfer-peak-offset: .5;
   --motion-overshoot-max: .75rem;
 }
 @media (prefers-reduced-motion: reduce) {
-  :root { --motion-duration-morph: 0ms; --motion-duration-slide: 0ms; --motion-duration-scale: 0ms; --motion-duration-backdrop: 0ms; --motion-duration-content: 0ms; --motion-duration-liquid: 0ms; }
+  :root { --motion-duration-morph: 0ms; --motion-duration-slide: 0ms; --motion-duration-scale: 0ms; --motion-duration-backdrop: 0ms; --motion-duration-content: 0ms; --motion-duration-transfer: 0ms; }
 }

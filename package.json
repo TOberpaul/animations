@@ -1,6 +1,6 @@
 {
   "name": "@tobiasoberpaul/mdk",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "files": [
     "dist",
@@ -14,7 +14,7 @@
     "./motion.css": "./dist/styles/motion.css"
   },
   "scripts": {
-    "build": "tsc && node scripts/copy-css.mjs",
+    "build": "node scripts/clean-dist.mjs && tsc && node scripts/copy-css.mjs",
     "build:examples": "node scripts/build-db-react.mjs && node scripts/build-shadcn.mjs",
     "build:shadcn": "node scripts/build-shadcn.mjs",
     "analytics": "node context-starter/analytics/serve.mjs . --codex-history",

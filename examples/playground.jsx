@@ -17,7 +17,7 @@ import {pagePath,pages,readRoute} from './routes.js';
 function HeaderHint({text,children}){return <TooltipProvider delayDuration={350}><Tooltip><TooltipTrigger asChild>{children}</TooltipTrigger><TooltipContent>{text}</TooltipContent></Tooltip></TooltipProvider>;}
 import {createPlaygroundController} from './playground.js';
 
-const choices=[['morph','Grow'],['liquid','Extract'],['replacingLiquid','Morph'],['splitMenu','Grow · Split button'],['dialog','Dialog'],['drawer','Side panel'],['notification','Notification'],['panelLeft','Grid · Left panel'],['panelRight','Grid · Right panel'],['trigger','Rename'],['search','Search'],['navigation','Submenu'],['text','Text block'],['image','Image block'],['page','Content page']];
+const choices=[['morph','Grow'],['extract','Extract'],['replacingMorph','Morph'],['splitMenu','Grow · Split button'],['dialog','Dialog'],['drawer','Side panel'],['notification','Notification'],['panelLeft','Grid · Left panel'],['panelRight','Grid · Right panel'],['trigger','Rename'],['search','Search'],['navigation','Submenu'],['text','Text block'],['image','Image block'],['page','Content page']];
 function Choice({id,label,value,options,onChange,className=''}){
  return <div className={`grid gap-2 ${className}`}><Label htmlFor={id} className="text-xs text-muted-foreground">{label}</Label><Select value={value} onValueChange={onChange}><SelectTrigger id={id}><SelectValue/></SelectTrigger><SelectContent>{options.map(([key,text])=><SelectItem key={key} value={key}>{text}</SelectItem>)}</SelectContent></Select></div>;
 }

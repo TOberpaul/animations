@@ -50,11 +50,38 @@ for (const name of ['menu','drawer','dialog']) {
   });
 }
 
+test('Extract and Morph animate through the public API after removing Liquid', async ({page}) => {
+  const result = await page.evaluate(async () => {
+    const mdk = await import('/dist/index.js');
+    const trigger = document.createElement('button');
+    const surface = document.createElement('div');
+    trigger.style.cssText = 'position:fixed;left:32px;top:32px;width:100px;height:36px';
+    surface.style.cssText = 'position:fixed;left:32px;top:80px;width:220px;height:100px;--motion-duration-transfer:1000ms';
+    surface.appendChild(document.createElement('span')).textContent = 'Content';
+    document.body.append(trigger, surface);
+    const animated = [mdk.createExtractTransition, mdk.createMorphTransition].map(create => {
+      const motion = create({ trigger, content: surface });
+      motion.seek(.4);
+      const hasTracks = surface.getAnimations({subtree:true}).length > 0;
+      motion.destroy();
+      return hasTracks && surface.getAnimations({subtree:true}).length === 0;
+    });
+    surface.dataset.motion = 'liquid';
+    let rejected = false;
+    try { mdk.getMotionKind(surface); } catch { rejected = true; }
+    return { animated, rejected, exports: Object.keys(mdk).filter(name => /liquid/i.test(name)),
+      behaviors: Object.keys(mdk.motionBehaviors) };
+  });
+  expect(result).toEqual({animated:[true,true],rejected:true,exports:[],behaviors:['grow','extract','morph','slide','fade']});
+});
+
 test('transform Grow keeps a right-positioned surface anchored through overshoot and reversal', async ({page}) => {
   const result = await page.evaluate(async () => {
     const {createGrowTransition} = await import('/dist/index.js');
     const surface = document.createElement('div');
-    surface.style.cssText = 'position:fixed;inset-inline-end:24px;top:10px;width:320px;height:120px;transform:translateX(12px);transform-origin:left bottom;--motion-scale-origin:right top;--motion-scale-from:0;--motion-duration-scale:1000ms';
+    const hostTransform = 'translateX(12px) scale(1.1, 0.9)';
+    surface.style.cssText = 'position:fixed;inset-inline-end:24px;top:10px;width:320px;height:120px;transform-origin:left bottom;transition:transform-origin 1s;--motion-scale-origin:right top;--motion-scale-from:0;--motion-duration-scale:1000ms';
+    surface.style.transform = hostTransform;
     const label = surface.appendChild(document.createElement('span'));
     label.textContent = 'Popover';
     document.body.append(surface);
@@ -76,7 +103,7 @@ test('transform Grow keeps a right-positioned surface anchored through overshoot
     grow.close();
     const reversed = tracks.every(animation => surface.getAnimations().includes(animation) && animation.playbackRate === -1);
     grow.destroy();
-    const restored = surface.style.transform === 'translateX(12px)' && surface.style.transformOrigin === 'left bottom' &&
+    const restored = surface.style.transform === hostTransform && surface.style.transformOrigin === 'left bottom' &&
       surface.getAnimations().length === 0 && surface.getBoundingClientRect().right === base.right;
 
     surface.style.setProperty('--motion-overshoot-max','0px');
@@ -120,6 +147,70 @@ test('logical Grow follows inline-end and block-start in RTL and vertical layout
     });
   });
   expect(Math.max(...errors)).toBeLessThan(.05);
+});
+
+test('transform Grow preserves host anchors across absolute, flex and grid layouts', async ({page}) => {
+  const errors = await page.evaluate(async () => {
+    const {createGrowTransition} = await import('/dist/index.js');
+    const layouts = [
+      ['position:absolute;left:27px;top:19px', '', 'left top', ['left','top']],
+      ['', 'display:flex;justify-content:flex-end;align-items:flex-end', 'right bottom', ['right','bottom']],
+      ['', 'display:grid;justify-items:center;align-items:start', 'center top', ['centre','top']],
+      ['position:absolute;right:21px;top:13px;transform-box:content-box', '', 'right top', ['contentRight','contentTop']],
+    ];
+    return layouts.map(([placement, layout, origin, edges]) => {
+      const container = document.createElement('div');
+      container.style.cssText = 'position:relative;width:400px;height:180px;' + layout;
+      const surface = container.appendChild(document.createElement('div'));
+      surface.style.cssText = 'width:181.5px;height:95.5px;box-sizing:border-box;padding:8px;border:2px solid;--motion-scale-from:.1;--motion-duration-scale:1000ms;' + placement;
+      surface.style.setProperty('--motion-scale-origin', origin);
+      document.body.append(container);
+      const anchor = (rect, edge) => {
+        if (edge === 'centre') return (rect.left + rect.right) / 2;
+        if (edge === 'contentRight') return rect.right - 10 * rect.width / 181.5;
+        if (edge === 'contentTop') return rect.top + 10 * rect.height / 95.5;
+        return rect[edge];
+      };
+      const base = surface.getBoundingClientRect();
+      const grow = createGrowTransition({content:surface,resize:'transform'});
+      const drift = [0.02, 0.27, 0.55, 0.79, 0.99].flatMap(progress => {
+        grow.seek(progress);
+        const current = surface.getBoundingClientRect();
+        return edges.map(edge => Math.abs(anchor(current,edge) - anchor(base,edge)));
+      });
+      grow.destroy();
+      container.remove();
+      return Math.max(...drift);
+    });
+  });
+  for (const error of errors) expect(error).toBeLessThan(.05);
+});
+
+test('transform Grow follows live host translation and releases effects on reduced motion', async ({page}) => {
+  const result = await page.evaluate(async () => {
+    const {createGrowTransition} = await import('/dist/index.js');
+    const surface = document.createElement('div');
+    surface.style.cssText = 'position:fixed;right:24px;top:20px;width:200px;height:100px;--motion-scale-origin:right top;--motion-duration-scale:1000ms';
+    document.body.append(surface);
+    const grow = createGrowTransition({content:surface,resize:'transform'});
+    grow.seek(.3);
+    const track = surface.getAnimations()[0];
+    const right = surface.getBoundingClientRect().right;
+    surface.style.transform = 'translateX(34px)';
+    window.transformAudit = {grow,surface};
+    return {delta:surface.getBoundingClientRect().right-right, sameTrack:track===surface.getAnimations()[0]};
+  });
+  expect(result.delta).toBeCloseTo(34, 2);
+  expect(result.sameTrack).toBe(true);
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.waitForFunction(() => window.transformAudit.grow.state === 'open');
+  expect(await page.evaluate(() => {
+    const {grow,surface} = window.transformAudit;
+    grow.close();
+    const clean = grow.state === 'closed' && surface.getAnimations().length === 0;
+    grow.destroy();
+    return clean && surface.style.transform === 'translateX(34px)' && !surface.style.transformOrigin;
+  })).toBe(true);
 });
 
 test('CSS presence holds a reversible exit and restores the host attribute', async ({page}) => {

@@ -25,7 +25,7 @@ Your component manages layout, visibility, focus and accessibility. MDK handles 
 
 For an existing popover or menu, use `createPresenceMotion` to connect its open and close signals. Use `resize: 'transform'` with `createGrowTransition` for local growth on a surface positioned by the host. [Integration guide](https://github.com/TOberpaul/animations/blob/main/docs/LIBRARY.md#animate-an-existing-component)
 
-The library includes Grow, Extract, Morph, Slide and Content transitions. See the [library guide](https://github.com/TOberpaul/animations/blob/main/docs/LIBRARY.md) for the API, CSS tokens and integration patterns.
+The library includes Grow, Extract, Morph, Slide and Fade. See the [library guide](https://github.com/TOberpaul/animations/blob/main/docs/LIBRARY.md) for the API, CSS tokens and integration patterns.
 
 Coding assistants can access the MDK reference and integration examples through the public MCP server. See the [MCP setup](https://github.com/TOberpaul/animations/blob/main/docs/AI_INTEGRATION.md#hosted-mcp).
 

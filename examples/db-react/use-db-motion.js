@@ -9,7 +9,7 @@ function settleDbEffects(root) {
     if (animation instanceof CSSTransition || animation instanceof CSSAnimation) animation.cancel();
   });
 }
-export function useDbMotion(name,kind,liquid=false,grow=false,replaceTrigger=false) {
+export function useDbMotion(name,kind,extract=false,grow=false,replaceTrigger=false) {
   const host=useRef(null),trigger=useRef(null),controller=useRef(null),timers=useRef([]);
   const [state,setState]=useState('closed'),[present,setPresent]=useState(false);
   useLayoutEffect(()=>{
@@ -57,7 +57,7 @@ export function useDbMotion(name,kind,liquid=false,grow=false,replaceTrigger=fal
       }
       if(next==='closed'&&kind!=='notification')trigger.current?.focus({preventScroll:true});
     }};
-    const raw=kind==='popover'?(replaceTrigger?createMorphTransition:liquid?createExtractTransition:createGrowTransition)({...options,trigger:trigger.current,replaceTrigger})
+    const raw=kind==='popover'?(replaceTrigger?createMorphTransition:extract?createExtractTransition:createGrowTransition)({...options,trigger:trigger.current,replaceTrigger})
       :grow?createGrowTransition({...options,axis:kind==='drawer'?'width':undefined,backdrop:kind==='drawer'?'native':undefined}):kind==='drawer'||kind==='notification'?createSlideTransition({...options,side:'right',backdrop:kind==='drawer'?'native':undefined}):createGrowTransition({...options,backdrop:'native'});
     function open(){
       if(disposed||desired)return;
@@ -92,7 +92,7 @@ export function useDbMotion(name,kind,liquid=false,grow=false,replaceTrigger=fal
     controller.current=motion;
     window.dbMotionDemo??={};window.dbMotionDemo[name]={motion,content,host:root};
     return()=>{motion.destroy();delete window.dbMotionDemo[name];controller.current=null;};
-  },[name,kind,liquid,replaceTrigger]);
+  },[name,kind,extract,replaceTrigger]);
   function stress(){timers.current.forEach(clearTimeout);timers.current=[];for(let i=0;i<7;i++)timers.current.push(setTimeout(()=>controller.current?.toggle(),i*85));}
   return {host,trigger,state,present,stress,open:()=>controller.current?.open(),close:()=>controller.current?.close(),toggle:()=>controller.current?.toggle(),cancel(event){event.preventDefault();controller.current?.close();}};
 }

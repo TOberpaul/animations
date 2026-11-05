@@ -144,27 +144,48 @@ function scaleOrigin(content: HTMLElement): string {
     (axis === 'inline' ? inline : block)[edge === 'start' ? 0 : 1]);
 }
 
+function measureScaleOrigin(content: HTMLElement, style: CSSStyleDeclaration, origin: string, width: number, height: number) {
+  const probe = content.ownerDocument.createElement('span');
+  probe.style.cssText = 'all:initial;position:fixed;visibility:hidden;pointer-events:none;transition:none!important;animation:none!important';
+  for (const name of ['font-size', 'font-family', 'line-height']) {
+    probe.style.setProperty(name, style.getPropertyValue(name));
+  }
+  const contentBox = style.transformBox === 'content-box' || style.transformBox === 'fill-box';
+  const inset = (side: string) => contentBox
+    ? parseFloat(style.getPropertyValue('padding-' + side)) + parseFloat(style.getPropertyValue('border-' + side + '-width'))
+    : 0;
+  const left = inset('left'), top = inset('top');
+  probe.style.width = `${Math.max(0, width - left - inset('right'))}px`;
+  probe.style.height = `${Math.max(0, height - top - inset('bottom'))}px`;
+  const read = () => getComputedStyle(probe).transformOrigin.split(' ').map(parseFloat);
+  let hostOrigin = style.transformOrigin.split(' ').map(parseFloat);
+  const parent = contentBox ? content : content.ownerDocument.body;
+  // Resolve keywords and percentages without starting a CSS transition on the host surface.
+  parent.appendChild(probe);
+  try {
+    // Resolved host styles can report percentages in border-box pixels even
+    // when transforms use the content box. Inherit onto the sized probe.
+    if (contentBox) {
+      probe.style.setProperty('transform-origin', 'inherit', 'important');
+      hostOrigin = read();
+    }
+    probe.style.setProperty('transform-origin', origin, 'important');
+    const [x, y] = read();
+    return { x: x + left, y: y + top, dx: x - hostOrigin[0], dy: y - hostOrigin[1] };
+  } finally {
+    probe.remove();
+  }
+}
+
 function transformGrowTracks(options: ResizeOptions): Track[] {
   const {content, axis} = options;
   const style = getComputedStyle(content);
-  const hostOrigin = style.transformOrigin.split(' ').map(parseFloat);
   const opacity = style.opacity;
-  const property = 'transform-origin';
-  const inlineOrigin = content.style.getPropertyValue(property);
-  const priority = content.style.getPropertyPriority(property);
   const origin = scaleOrigin(content);
-  if (!CSS.supports(property, origin)) throw new Error('Invalid --motion-scale-origin.');
-  let x: number, y: number;
-  try {
-    content.style.setProperty(property, origin, 'important');
-    [x, y] = style.transformOrigin.split(' ').map(parseFloat);
-  } finally {
-    if (inlineOrigin) content.style.setProperty(property, inlineOrigin, priority);
-    else content.style.removeProperty(property);
-  }
+  if (!CSS.supports('transform-origin', origin)) throw new Error('Invalid --motion-scale-origin.');
   const {width, height} = localScale(content, content.getBoundingClientRect());
   if (!width || !height) throw new Error('Grow content must be measurable before animation.');
-  const dx = x - hostOrigin[0], dy = y - hostOrigin[1];
+  const {x, y, dx, dy} = measureScaleOrigin(content, style, origin, width, height);
   const end = numberToken(content, 'scale-geometry-end');
   if (end <= 0 || end > 1) throw new Error('Scale geometry end must satisfy 0 < end <= 1.');
   const requested = token(content, 'easing-scale');

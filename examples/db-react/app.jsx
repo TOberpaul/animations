@@ -9,9 +9,9 @@ import {ContentExamples} from '../content-examples.jsx';
 import {connectPlayground} from '../provider-bridge.js';
 
 const common={'data-motion-db':'true','data-motion-state':'closed','data-icon-variant':'default'};
-function Menu({liquid=false,replace=false,split=false,notify}){
-  const id=split?'db-split-popover':replace?'db-replace-popover':liquid?'db-liquid-popover':'db-popover';
-  const m=useDbMotion(split?'splitPopover':replace?'replacePopover':liquid?'liquidPopover':'popover','popover',liquid,false,replace);
+function Menu({extract=false,replace=false,split=false,notify}){
+  const id=split?'db-split-popover':replace?'db-replace-popover':extract?'db-extract-popover':'db-popover';
+  const m=useDbMotion(split?'splitPopover':replace?'replacePopover':extract?'extractPopover':'popover','popover',extract,false,replace);
   function keys(e){
     if(e.key==='Escape'||e.key==='Tab'){m.close();return;}
     if(!['ArrowDown','ArrowUp','Home','End'].includes(e.key))return;
@@ -21,7 +21,7 @@ function Menu({liquid=false,replace=false,split=false,notify}){
   }
   useEffect(()=>{const outside=e=>{if(!m.host.current?.contains(e.target))m.close();};document.addEventListener('pointerdown',outside);return()=>document.removeEventListener('pointerdown',outside);},[]);
   const triggerButton=<DBButton id={id+'-trigger'} ref={m.trigger} variant="filled" aria-label={split?'More save actions':undefined} aria-haspopup="menu" aria-expanded={m.present} onClick={m.toggle} icon={split?'chevron_down':undefined} noText={split||undefined} size={split?'medium':undefined} data-icon-variant={split?'default':undefined}>{split?'More save actions':'Actions'}</DBButton>;
-  return <Example name={replace?'Morph':liquid?'Extract':'Grow'} component={split?'DBButton group · Main + secondary actions · DBPopover':'DBPopover · DBButton'} state={m.state}>
+  return <Example name={replace?'Morph':extract?'Extract':'Grow'} component={split?'DBButton group · Main + secondary actions · DBPopover':'DBPopover · DBButton'} state={m.state}>
     <DBPopover {...common} id={id} ref={m.host} open={m.present} animation={false} className={replace?'action-menu-popover action-menu-replacing':'action-menu-popover'} forceAbsolute placement="bottom-end" gap={!replace} width="auto" onKeyDown={keys}
       trigger={split?<div className="split-button-group" role="group" aria-label="Save actions"><DBButton variant="filled" onClick={()=>notify('Saved')}>Save</DBButton>{triggerButton}</div>:triggerButton}>
       <div className="action-items" role="menu" aria-label="Actions">{(split?['Save as draft','Duplicate','Export']:['Edit','Duplicate','Delete']).map(label=><DBButton key={label} variant="ghost" role="menuitem" width="full" className="action-item" onClick={()=>{m.close();notify(label);}}>{label}</DBButton>)}</div>
@@ -48,8 +48,8 @@ function App(){
   const [message,setMessage]=useState(null);const notify=text=>setMessage({text});
   useLayoutEffect(()=>connectPlayground([
     {name:'morph',label:'Grow',trigger:'db-popover-trigger',get:()=>window.dbMotionDemo?.popover},
-    {name:'liquid',label:'Extract',trigger:'db-liquid-popover-trigger',get:()=>window.dbMotionDemo?.liquidPopover},
-    {name:'replacingLiquid',label:'Morph',trigger:'db-replace-popover-trigger',get:()=>window.dbMotionDemo?.replacePopover},
+    {name:'extract',label:'Extract',trigger:'db-extract-popover-trigger',get:()=>window.dbMotionDemo?.extractPopover},
+    {name:'replacingMorph',label:'Morph',trigger:'db-replace-popover-trigger',get:()=>window.dbMotionDemo?.replacePopover},
     {name:'splitMenu',label:'Grow · Split button',trigger:'db-split-popover-trigger',get:()=>window.dbMotionDemo?.splitPopover},
     {name:'dialog',label:'Dialog',trigger:'db-dialog-trigger',get:()=>window.dbMotionDemo?.dialog},
     {name:'drawer',label:'Side panel',trigger:'db-grow-drawer-trigger',get:()=>window.dbMotionDemo?.['grow-drawer']},
@@ -63,6 +63,6 @@ function App(){
     {name:'image',label:'Image block',get:()=>window.contentMotionDemo?.image},
     {name:'page',label:'Content page',get:()=>window.contentMotionDemo?.page},
   ]),[]);
-  return <main className="mini-grid"><ExamplesIntro/><ExampleSection title="Action menus" description="Compare Grow, Extract and Morph, including split-button actions."><Menu notify={notify}/><Menu liquid notify={notify}/><Menu liquid replace notify={notify}/><Menu split notify={notify}/></ExampleSection><ExampleSection title="Overlays" description="Dialogs, side panels and notifications."><DialogExample/><DrawerExample grow/><NotificationExample grow message={message}/></ExampleSection><ExampleSection title="Layout panels" description="Independent panels anchored to the edges of a three-column layout."><PanelGridExample Button={Button} Surface={DBCard}/></ExampleSection><ExampleSection title="Inline inputs" description="Transform buttons into editable fields."><RenameExample Button={Button} Input={RenameInput}/><RenameExample Button={SearchButton} Input={RenameInput} search/></ExampleSection><ExampleSection title="Navigation" description="Two-level navigation and cascading context menus."><NavigationExample Button={Button} BackButton={BackButton} Surface={DBCard}/><CascadingPopover Button={Button} Surface={DBCard}/></ExampleSection><ExampleSection title="Page content" description="Independent text, image and card reveals on screen entry."><ContentExamples Button={Button} Surface={DBCard}/></ExampleSection></main>;
+  return <main className="mini-grid"><ExamplesIntro/><ExampleSection title="Action menus" description="Compare Grow, Extract and Morph, including split-button actions."><Menu notify={notify}/><Menu extract notify={notify}/><Menu extract replace notify={notify}/><Menu split notify={notify}/></ExampleSection><ExampleSection title="Overlays" description="Dialogs, side panels and notifications."><DialogExample/><DrawerExample grow/><NotificationExample grow message={message}/></ExampleSection><ExampleSection title="Layout panels" description="Independent panels anchored to the edges of a three-column layout."><PanelGridExample Button={Button} Surface={DBCard}/></ExampleSection><ExampleSection title="Inline inputs" description="Transform buttons into editable fields."><RenameExample Button={Button} Input={RenameInput}/><RenameExample Button={SearchButton} Input={RenameInput} search/></ExampleSection><ExampleSection title="Navigation" description="Two-level navigation and cascading context menus."><NavigationExample Button={Button} BackButton={BackButton} Surface={DBCard}/><CascadingPopover Button={Button} Surface={DBCard}/></ExampleSection><ExampleSection title="Page content" description="Independent text, image and card reveals on screen entry."><ContentExamples Button={Button} Surface={DBCard}/></ExampleSection></main>;
 }
 if(window.parent===window)location.replace('../?components=db');else createRoot(document.getElementById('root')).render(<App/>);

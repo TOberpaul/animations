@@ -89,6 +89,8 @@ const motion = createPresenceMotion({
 
 <p>With <code>stateTarget</code>, keep the surface rendered at its normal open opacity while <code>data-motion-state="closing"</code>. Use <code>setPresent</code> when the host offers imperative presence control. For a host that hides immediately, omit both options and call <code>setOpen(true)</code> after the surface becomes visible.</p>
 
+<p>Upgrading from the former Liquid API or markup? Use Extract when the source stays visible and Morph when the source becomes the target. Shared timing and geometry overrides now use <code>--motion-duration-transfer</code> and <code>--motion-transfer-*</code>.</p>
+
 </section>
 
 <section id="html-attributes">

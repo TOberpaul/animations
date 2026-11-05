@@ -134,6 +134,10 @@ Pass `trigger` only to grow from the trigger's edge. Use
 host transform and leaves layout dimensions and insets alone. The whole surface
 scales visually, including its border and content. Set `--motion-overshoot-max: 0`
 to turn off overshoot. This mode works with `createPresenceMotion`.
+MDK resolves the motion origin without changing the surface's own
+`transform-origin`, so host CSS transitions on that property stay independent.
+The anchor follows the surface's `transform-box`, including `content-box`.
+Origin and dimensions are measured at the start of each animation.
 
 The default `resize: 'metrics'` still resizes the actual surface. Grow with a
 `trigger` continues to use trigger-edge geometry. The local transform mode
@@ -147,7 +151,6 @@ supports HTML surfaces without an SVG overlay.
 | `createScaleTransition` | Deprecated alias for local Grow | Optional `axis`, `backdrop` |
 | `createExtractTransition` | Extract a new surface while retaining the trigger | `trigger` |
 | `createMorphTransition` | Transform the trigger into the target surface | `trigger` |
-| `createLiquidMorphTransition` | Source volume → encompassing surface → target | `trigger`; optional `replaceTrigger` |
 | `createSlideTransition` | Bounded translate3d entry or two-pane shift | Optional `side`, `mode`, `outgoing`, `backdrop` |
 | `createContentTransition` | Fixed slide + blur + fade | Optional `items`, `reveal`, `timing` |
 | `createMotion` | Selects a factory from markup | See declarative integration below |
@@ -187,16 +190,17 @@ Public factories, declarative markup and example titles use the same meanings:
 
 Migration: the earlier `createMorphTransition` name referred to trigger-edge Grow.
 Use `createGrowTransition` for that old behavior. `createMorphTransition` now
-means replacing Morph, consistent with the examples. The lower-level
-`createLiquidMorphTransition` remains available with an explicit
-`replaceTrigger` flag, and `createScaleTransition` remains an origin-Grow alias.
+means replacing Morph, consistent with the examples. To migrate from the former
+Liquid API or markup, use Extract when the source stays visible and Morph when
+the source becomes the target. Use the `--motion-transfer-*` and
+`--motion-duration-transfer` tokens for the shared animation settings.
 
 Extract retains the original trigger. Replacing Morph snapshots its foreground,
 then crossfades that foreground into target content while one material surface
 moves between the geometries. The integration hides/inerts the real trigger
 until closed and restores it afterward. This avoids nested interactive controls.
 
-Liquid animates a temporary HTML surface with CSS dimensions, corners, background and borders. It removes the temporary surface and foreground
+Extract and Morph animate a temporary HTML surface with CSS dimensions, corners, background and borders. They remove the temporary surface and foreground
 copy at rest. The resting UI is the real HTML component. Trigger swelling is a
 phase of the click animation; there is no press/hold feature or press/release API.
 
@@ -207,7 +211,7 @@ the right edge. Both buttons remain visible and the main action is independent.
 
 ### Material source and composite inputs
 
-Liquid reads material values from `content`. If a component wrapper is
+Extract and Morph read material values from `content`. If a component wrapper is
 transparent/borderless but a nested input paints the real material, explicitly
 prepare a surface with the input's background, border and radius before the
 motion snapshot. During travel, prevent the inner control from painting a second
@@ -263,12 +267,10 @@ const transition = createMotion({
 | `data-motion-axis` | Grow axis: `width` or `height` |
 | `data-motion-side` | Slide entry side |
 | `data-motion-timing` | Content: `per-item` (default) or `total` |
-| `data-motion-replace-trigger` | Presence enables replacing Liquid |
 
 An explicit `data-motion` takes precedence over classes. Without it, use exactly
 one matching class. Declarative `morph` selects the replacing Morph factory directly.
-The deprecated `liquid` / `motion-liquid` spelling remains a compatibility path; its
-`data-motion-replace-trigger` flag retains its original meaning. Recreate the controller to change behavior after
+Recreate the controller to change behavior after
 initialization. Change CSS tokens for per-trip visual parameters.
 
 ## Content progression and ordering
@@ -362,7 +364,7 @@ can be overridden locally on a surface or globally.
 
 | Token | Library default / meaning |
 | --- | --- |
-| `--motion-duration` | `300ms`; aliases for morph, scale, liquid, slide, content, backdrop |
+| `--motion-duration` | `300ms`; aliases for morph, scale, transfer, slide, content, backdrop |
 | `--motion-easing-standard` | `cubic-bezier(.42, 0, .58, 1)`; symmetric open/close |
 | `--motion-overshoot-ratio` | `15%` of the surface's shorter side by default. When unset, reads the legacy `--motion-overshoot-min` token. |
 | `--motion-overshoot-max` | `.75rem` cap shared by trigger and target; morph/scale alias this |
