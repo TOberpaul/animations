@@ -353,7 +353,7 @@ function fitCodeZoom(section){
  return low;
 }
 
-export function CodePlayground({settings,headerActions}){
+export function CodePlayground({settings,headerActions,siteRoot}){
  const [mobilePane,setMobilePane]=useState('editor');
  const [wide,setWide]=useState(()=>matchMedia(headerActionsQuery).matches);
  useEffect(()=>{
@@ -391,11 +391,11 @@ export function CodePlayground({settings,headerActions}){
   const dark=settings.theme==='dark';
   const motionTokens=Object.entries(motionSettingsTokens(settings)).map(([key,value])=>key+':'+value).join(';');
   const tokens=`:root{${motionTokens};color-scheme:${dark?'dark':'light'};--preview-bg:${dark?'#090909':'#fafafa'};--preview-fg:${dark?'#fafafa':'#171717'};--preview-surface:${dark?'#242221':'white'};--preview-button:${dark?'#27272a':'#e4e4e7'};}`;
-  const base=new URL('../',location.href).href;
+  const base=siteRoot.href;
   const escapeScript=s=>s.replace(/<\/script/gi,'<\\/script');
   const js=`try {\nawait import(${JSON.stringify(base+'examples/code-preview.js')});\nparent.postMessage({type:'motion-code-ready'},${JSON.stringify(location.origin)});\n} catch(error) { parent.postMessage({type:'motion-code-error',message:String(error.stack||error)},${JSON.stringify(location.origin)}); }`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="${base}dist/styles/motion.css"><style>${tokens}</style><link rel="stylesheet" href="${base}examples/code-preview.css"></head><body>${applied}<script>addEventListener('error',e=>parent.postMessage({type:'motion-code-error',message:e.message},${JSON.stringify(location.origin)}));addEventListener('unhandledrejection',e=>parent.postMessage({type:'motion-code-error',message:String(e.reason)},${JSON.stringify(location.origin)}));<\/script><script type="module">${escapeScript(js)}<\/script></body></html>`;
- },[applied,settings,revision]);
+ },[applied,settings,revision,siteRoot]);
  useEffect(()=>{setError('');setProgress(0);setPreviewOpen(false);epoch.current++;},[documentCode]);
  useEffect(()=>{const receive=event=>{if(event.source!==frame.current?.contentWindow)return;if(event.data?.type==='motion-code-error')setError(event.data.message);if(event.data?.type==='motion-code-ready')setError('');if(event.data?.type==='motion-code-state')setPreviewOpen(['opening','open'].includes(event.data.state));};window.addEventListener('message',receive);return()=>window.removeEventListener('message',receive);},[]);
  function act(action){epoch.current++;const win=frame.current?.contentWindow;try{win?.document.getAnimations().filter(a=>a.playState==='paused').forEach(a=>a.play());win?.transition?.[action]();}catch(e){setError(String(e));}}

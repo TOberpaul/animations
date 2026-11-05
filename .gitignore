@@ -8,5 +8,6 @@ examples/shadcn/build/
 .env.*
 
 site/
+/supabase/functions/mcp/generated/
 /.codex/context-usage.jsonl
 /.codex/context-packages.json

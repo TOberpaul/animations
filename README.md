@@ -25,4 +25,6 @@ Your component manages layout, visibility, focus and accessibility. MDK handles 
 
 The library includes Grow, Extract, Morph, Slide and Content transitions. See the [library guide](https://github.com/TOberpaul/animations/blob/main/docs/LIBRARY.md) for the API, CSS tokens and integration patterns.
 
+Coding assistants can access the MDK reference and integration examples through the public MCP server. See the [MCP setup](https://github.com/TOberpaul/animations/blob/main/docs/AI_INTEGRATION.md#hosted-mcp).
+
 Licensed under [MIT](LICENSE).

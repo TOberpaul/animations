@@ -1,6 +1,6 @@
 module.exports = {
   darkMode: ['class'],
-  content: ['./examples/shadcn/**/*.{tsx,ts,jsx,html}', './examples/playground.jsx'],
+  content: ['./examples/shadcn/**/*.{tsx,ts,jsx,html}', './examples/playground.jsx', './examples/docs/**/*.mdx', './scripts/render-docs.jsx'],
   theme: {
     container: { center: true, padding: '1.5rem', screens: { '2xl': '1280px' } },
     extend: {

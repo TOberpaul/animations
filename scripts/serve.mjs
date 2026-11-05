@@ -1,15 +1,25 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
+import {pagePath,pages} from '../examples/routes.js';
 const root = resolve('.');
+const routes = new Set([...Object.keys(pages).map((view)=>'/' + pagePath(view)), '/'+pagePath('examples','db')]);
 createServer(async (req,res) => {
   let path;
-  try { path = resolve(root, '.' + decodeURIComponent(new URL(req.url,'http://localhost').pathname).replace(/\/$/,'/index.html')); }
+  try {
+    const url = new URL(req.url,'http://localhost');
+    const pathname = decodeURIComponent(url.pathname);
+    if(!pathname.endsWith('/')&&routes.has(pathname+'/')){
+      res.writeHead(308,{Location:pathname+'/'+url.search}).end();
+      return;
+    }
+    path = resolve(root, (routes.has(pathname)?'site':'.') + pathname.replace(/\/$/,'/index.html'));
+  }
   catch { res.writeHead(400).end('Invalid path'); return; }
   if (!path.startsWith(root + sep)) { res.writeHead(403).end(); return; }
   try {
     const body = await readFile(path);
-    res.setHeader('Content-Type',({'.html':'text/html','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.mp4':'video/mp4'})[extname(path)] || 'application/octet-stream');
+    res.setHeader('Content-Type',({'.html':'text/html','.css':'text/css','.js':'text/javascript','.md':'text/plain; charset=utf-8','.svg':'image/svg+xml','.mp4':'video/mp4'})[extname(path)] || 'application/octet-stream');
     if (extname(path) === '.mp4') {
       res.setHeader('Accept-Ranges','bytes');
       if (req.headers.range) {
@@ -24,4 +34,4 @@ createServer(async (req,res) => {
     res.setHeader('Content-Length',body.length);res.end(body);
   }
   catch { res.writeHead(404).end('Not found'); }
-}).listen(4173,'127.0.0.1',() => console.log('Motion playground: http://127.0.0.1:4173/examples/'));
+}).listen(4173,'127.0.0.1',() => console.log('MDK Motion Library: http://127.0.0.1:4173/'));

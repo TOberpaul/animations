@@ -7,7 +7,7 @@ npm install
 npm run dev
 ```
 
-Open [the playground](http://127.0.0.1:4173/examples/).
+Open the [local website](http://127.0.0.1:4173/).
 
 ## Publish the website
 
@@ -21,6 +21,8 @@ as `npm run build:site` and publish directory as `site`. The site includes
 Examples, Code playground and Documentation. Subdirectory hosting works without
 route rewrites. Preview the generated site locally at
 [the static build](http://127.0.0.1:4173/site/) while the dev server is running.
+
+The build renders the MDX files in `examples/docs/` to HTML at `/`, `/examples/`, `/examples/db/`, `/docs/`, `/docs/ai/` and `/playground/`. The shared React shell adds navigation and interactive demos. The published site also includes `docs/LIBRARY.md` for tools that prefer Markdown.
 
 GitHub Pages is deployed by `.github/workflows/pages.yml` on every push to
 `main`. Set **Settings → Pages → Source → GitHub Actions** in the repository.
@@ -47,7 +49,7 @@ Generated builds, dependencies and local visual-check output are ignored by Git.
 
 ## AI coding clients
 
-A local read-only MCP server shares the guide, built API declarations, tokens and integration examples with compatible AI clients. See [AI integration setup](docs/AI_INTEGRATION.md). Start with `npm run build`, then configure `node /absolute/path/to/animations/ai/mcp-server.mjs` as a stdio MCP server. Portable integration rules are in `ai/INSTRUCTIONS.md`.
+The read-only MDK MCP server shares the guide, built API declarations, tokens and integration examples with compatible AI clients. The public server runs on Supabase over Streamable HTTP. For local development, run `npm run build` and use the stdio adapter. See [AI integration setup and deployment](AI_INTEGRATION.md). Portable integration rules are in `ai/INSTRUCTIONS.md`.
 
 ## Local Codex analytics
 

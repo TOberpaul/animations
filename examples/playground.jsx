@@ -13,6 +13,7 @@ import {Select,SelectTrigger,SelectValue,SelectContent,SelectItem} from './shadc
 import {Slider} from './shadcn/components/ui/slider';
 import {Switch} from './shadcn/components/ui/switch';
 import {Tooltip,TooltipTrigger,TooltipContent,TooltipProvider} from './shadcn/components/ui/tooltip';
+import {pagePath,pages,readRoute} from './routes.js';
 function HeaderHint({text,children}){return <TooltipProvider delayDuration={350}><Tooltip><TooltipTrigger asChild>{children}</TooltipTrigger><TooltipContent>{text}</TooltipContent></Tooltip></TooltipProvider>;}
 import {createPlaygroundController} from './playground.js';
 
@@ -27,23 +28,37 @@ function Panel({title,children,className=''}){
  return <Card className={`shadow-none ${className}`}><CardHeader className="p-4 pb-4"><CardTitle className="text-sm">{title}</CardTitle></CardHeader><CardContent className="grid gap-5 p-4 pt-0">{children}</CardContent></Card>;
 }
 function Playground(){
- const [view,setView]=useState(()=>['code','docs','examples','ai'].includes(new URLSearchParams(location.search).get('view'))?new URLSearchParams(location.search).get('view'):'home');
- function changeView(next,section){
-  const url=new URL(location.href);
-  url.searchParams.set('view',next);
-  url.hash=section||'';
-  history.replaceState(history.state,'',url);
-  setView(next);
+ const [siteRoot]=useState(()=>new URL(document.querySelector('meta[name="mdk-root"]')?.content??'../',location.href));
+ const [{view,provider},setRoute]=useState(()=>readRoute(new URL(location.href),siteRoot));
+ const hrefFor=(next,nextProvider=provider)=>new URL(pagePath(next,nextProvider),siteRoot).href;
+ function changeView(next,nextProvider=provider){
+  const href=hrefFor(next,nextProvider);
+  if(href!==location.href)history.pushState(null,'',href);
+  setRoute({view:next,provider:next==='examples'?nextProvider:'shadcn'});
  }
- const [config,setConfig]=useState(defaults),[provider,setProvider]=useState(()=>new URLSearchParams(location.search).get('components')==='db'?'db':'shadcn');
+ function linkTo(next){
+  return {href:hrefFor(next),onClick(event){
+   if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+   event.preventDefault();
+   changeView(next);
+  }};
+ }
+ useEffect(()=>{
+  const update=()=>setRoute(readRoute(new URL(location.href),siteRoot));
+  window.addEventListener('popstate',update);
+  return()=>window.removeEventListener('popstate',update);
+ },[siteRoot]);
+ useEffect(()=>{document.title=view==='home'?pages.home.title:pages[view].title+' · MDK Motion Library';},[view]);
+ const [config,setConfig]=useState(defaults);
  const [selected,setSelected]=useState('morph'),[value,setValue]=useState(0),[status,setStatus]=useState('Loading components…');
  const [systemReduced,setSystemReduced]=useState(()=>matchMedia('(prefers-reduced-motion: reduce)').matches);
  const canvas=useRef(null),controller=useRef(null),configRef=useRef(config),systemRef=useRef(systemReduced),settingsRef=useRef({...config,reduced:config.reduced||systemReduced}),selectedRef=useRef(selected),valueRef=useRef(value);
  const changeFrame=next=>{valueRef.current=next;setValue(next);};
  useLayoutEffect(()=>{
-  controller.current=createPlaygroundController(canvas.current,{settings:()=>settingsRef.current,animation:()=>selectedRef.current,progress:()=>valueRef.current,onProgress:changeFrame,onStatus:setStatus});
-  controller.current.switchProvider(provider);return()=>controller.current.destroy();
+  controller.current=createPlaygroundController(canvas.current,{siteRoot,settings:()=>settingsRef.current,animation:()=>selectedRef.current,progress:()=>valueRef.current,onProgress:changeFrame,onStatus:setStatus});
+  return()=>controller.current.destroy();
  },[]);
+ useLayoutEffect(()=>{controller.current.switchProvider(provider);},[provider]);
  useLayoutEffect(()=>{document.documentElement.classList.toggle('dark',config.theme==='dark');document.documentElement.dataset.theme=config.theme;document.documentElement.style.colorScheme=config.theme;},[config.theme]);
  useLayoutEffect(()=>{for(const [name,value] of Object.entries(motionSettingsTokens({...config,reduced:config.reduced||systemReduced})))document.documentElement.style.setProperty(name,value);},[config,systemReduced]);
  useEffect(()=>{
@@ -102,12 +117,12 @@ function Playground(){
  useLayoutEffect(()=>{const content=settingsElement.current;const transition=createGrowTransition({content,anchor:{x:1,y:0},reveal:[...content.children],onStateChange(state){if(state==='destroyed')return;content.hidden=state==='closed';content.inert=state==='closed'||state==='closing';}});settingsMotion.current=transition;return()=>transition.destroy();},[]);
  useLayoutEffect(()=>{if(settingsVisible)settingsMotion.current?.open();else settingsMotion.current?.close();},[settingsVisible]);
  const reduced=config.reduced||systemReduced;
- return <><header ref={headerRef} data-floating={headerFloating} className="shell-header border-b bg-background"><div className="shell-title"><a className="shell-home text-base font-semibold tracking-tight" href="?view=home" onClick={event=>{if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();changeView('home');}}>Motion Library</a><nav aria-label="Playground view" className="shell-view-group">{[['docs','Documentation'],['examples','Examples'],['code','Code playground']].map(([key,label])=><Button key={key} variant={(view===key||(key==='docs'&&view==='ai'))?'secondary':'ghost'} aria-current={view===key?'page':undefined} onClick={()=>changeView(key)}>{label}</Button>)}</nav></div><div className="shell-switches"><div className="shell-code-actions" ref={setCodeHeaderActions}/><div className="shell-icon-actions"><HeaderHint text={config.theme==='dark'?'Switch to light mode':'Switch to dark mode'}><Button type="button" variant="ghost" size="icon" aria-label="Dark mode" aria-pressed={config.theme==="dark"} onClick={()=>update("theme",config.theme==="dark"?"light":"dark",true)}>{config.theme==="dark"?<Moon aria-hidden="true"/>:<Sun aria-hidden="true"/>}</Button></HeaderHint><HeaderHint text={systemReduced?'Reduced motion is enabled by your system':reduced?'Disable reduced motion':'Enable reduced motion'}><Button type="button" variant={reduced?'secondary':'ghost'} size="icon" aria-label="Reduced motion" aria-pressed={reduced} aria-disabled={systemReduced} onClick={()=>{if(!systemReduced)update('reduced',!config.reduced,true);}}><Accessibility aria-hidden="true"/></Button></HeaderHint><HeaderHint text={settingsVisible?"Hide settings":"Show settings"}><Button type="button" variant="ghost" size="icon" aria-label="Motion settings" aria-controls="motion-settings" aria-expanded={settingsVisible} onClick={()=>setSettingsVisible(value=>!value)}><PanelRight aria-hidden="true"/></Button></HeaderHint></div></div></header>
+ return <><header ref={headerRef} data-floating={headerFloating} className="shell-header border-b bg-background"><div className="shell-title"><a className="shell-home text-base font-semibold tracking-tight" {...linkTo('home')}>Motion Library</a><nav aria-label="Playground view" className="shell-view-group">{[['docs','Documentation'],['examples','Examples'],['code','Code playground']].map(([key,label])=><Button key={key} asChild variant={(view===key||(key==='docs'&&view==='ai'))?'secondary':'ghost'}><a aria-current={view===key?'page':undefined} {...linkTo(key)}>{label}</a></Button>)}</nav></div><div className="shell-switches"><div className="shell-code-actions" ref={setCodeHeaderActions}/><div className="shell-icon-actions"><HeaderHint text={config.theme==='dark'?'Switch to light mode':'Switch to dark mode'}><Button type="button" variant="ghost" size="icon" aria-label="Dark mode" aria-pressed={config.theme==="dark"} onClick={()=>update("theme",config.theme==="dark"?"light":"dark",true)}>{config.theme==="dark"?<Moon aria-hidden="true"/>:<Sun aria-hidden="true"/>}</Button></HeaderHint><HeaderHint text={systemReduced?'Reduced motion is enabled by your system':reduced?'Disable reduced motion':'Enable reduced motion'}><Button type="button" variant={reduced?'secondary':'ghost'} size="icon" aria-label="Reduced motion" aria-pressed={reduced} aria-disabled={systemReduced} onClick={()=>{if(!systemReduced)update('reduced',!config.reduced,true);}}><Accessibility aria-hidden="true"/></Button></HeaderHint><HeaderHint text={settingsVisible?"Hide settings":"Show settings"}><Button type="button" variant="ghost" size="icon" aria-label="Motion settings" aria-controls="motion-settings" aria-expanded={settingsVisible} onClick={()=>setSettingsVisible(value=>!value)}><PanelRight aria-hidden="true"/></Button></HeaderHint></div></div></header>
   <div className="shell-layout" data-settings-visible={settingsVisible}><aside ref={settingsElement} id="motion-settings" hidden className="controls border-l bg-muted/10" aria-label="Motion settings"><Panel title="Timing"><Range id="duration" label="Duration" value={config.duration} onChange={next=>update('duration',next)} onCommit={()=>controller.current.settingsCommitted()}/></Panel>
    <Panel title="Content"><Choice id="content-entry" label="Screen entry" value={config.contentEntry} options={[["once","Once"],["repeat","Every time"]]} onChange={next=>update("contentEntry",next,true)}/><div className="flex items-center gap-2"><Switch id="progressive" checked={config.progressive} onCheckedChange={next=>update('progressive',next,true)}/><Label htmlFor="progressive" className="text-xs">Progressive content animation</Label></div><Range id="progressionGap" label="Progression gap" value={config.progressionGap} min={0} max={150} step={2} disabled={!config.progressive} onChange={next=>update('progressionGap',next)} onCommit={()=>controller.current.settingsCommitted()}/><p className="text-[11px] leading-relaxed text-muted-foreground">Time between content starts. Component sequences stay within their duration.</p></Panel>
    <Panel title="Overshoot"><div className="flex items-center gap-2"><Switch id="overshoot" checked={config.overshoot} onCheckedChange={next=>update('overshoot',next,true)}/><Label htmlFor="overshoot" className="text-xs">Overshoot</Label></div><Range id="overshootMinimum" disabled={!config.overshoot} label="Proportional · Min" value={config.overshootMinimum} min={0} max={30} step={1} unit="%" onChange={next=>update('overshootMinimum',next)} onCommit={()=>controller.current.settingsCommitted()}/><Range id="overshootMax" disabled={!config.overshoot} label="Maximum" value={config.overshootMax} min={0} max={2} step={0.125} unit=" rem" onChange={next=>update('overshootMax',next)} onCommit={()=>controller.current.settingsCommitted()}/><p className="text-[11px] leading-relaxed text-muted-foreground">Percentage of the shorter side, capped by the rem maximum. Direction follows the anchor or travel.</p></Panel>
    {view==='examples'&&<Panel title="Frame preview" className="preview"><Choice id="animation" label="Animation" value={selected} options={choices} onChange={next=>{selectedRef.current=next;setSelected(next);controller.current.selectAnimation();}}/><Range id="frame" label="Frame" value={value} min={0} max={100} step={0.1} unit="%" disabled={reduced} onChange={next=>{changeFrame(next);controller.current.scrub();}}/><p id="preview-status" role="status" className="text-[11px] leading-relaxed text-muted-foreground">{status}</p></Panel>}
-  </aside><main className="canvas">{view==='home'&&<Home navigate={changeView} reduced={reduced}/>}{(view==='docs'||view==='ai')&&<Documentation key={view} ai={view==='ai'}/>}<div className="examples-canvas" hidden={view!=='examples'}><div className="examples-floating-actions">{view==='examples'&&<fieldset className="component-radio-group"><legend className="sr-only">Components</legend><div className="component-radio-options">{[["shadcn","shadcn"],["db","DB React"]].map(([value,label])=><label key={value} className="component-radio-option"><input type="radio" name="components" value={value} checked={provider===value} onChange={()=>{setProvider(value);controller.current.switchProvider(value);}}/><span>{label}</span></label>)}</div></fieldset>}</div><div ref={canvas} className="provider-canvases"/></div>{view==='code'&&<CodePlayground headerActions={codeHeaderActions} settings={{...config,reduced}}/>}</main></div></>;
+  </aside><main className="canvas">{view==='home'&&<Home linkTo={linkTo} reduced={reduced}/>}{(view==='docs'||view==='ai')&&<Documentation key={view} ai={view==='ai'} linkTo={linkTo}/>}<div className="examples-canvas" hidden={view!=='examples'}><div className="examples-floating-actions">{view==='examples'&&<fieldset className="component-radio-group"><legend className="sr-only">Components</legend><div className="component-radio-options">{[["shadcn","shadcn"],["db","DB React"]].map(([value,label])=><label key={value} className="component-radio-option"><input type="radio" name="components" value={value} checked={provider===value} onChange={()=>changeView('examples',value)}/><span>{label}</span></label>)}</div></fieldset>}</div><div ref={canvas} className="provider-canvases"/></div>{view==='code'&&<CodePlayground siteRoot={siteRoot} headerActions={codeHeaderActions} settings={{...config,reduced}}/>}</main></div></>;
 }
 createRoot(document.getElementById('root')).render(<Playground/>);
 

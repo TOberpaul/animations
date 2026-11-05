@@ -1,8 +1,26 @@
 # AI integration
 
-The library includes a local, read-only MCP server. Use it with an AI client that supports local stdio MCP servers. No model provider, API key, remote service, or runtime framework dependency is required. Each client controls its own approval and tool-use behavior.
+The read-only MDK MCP server gives coding assistants access to the library guide, tokens, API and integration examples.
 
-## Setup
+## Hosted MCP
+
+Connect a client that supports Streamable HTTP to the public endpoint. It requires no API key, sign-in or local checkout.
+
+In Kiro, add this entry to your MCP settings:
+
+```json
+{
+  "mcpServers": {
+    "motion-library": {
+      "url": "https://emjicqiqcpmkindocsnt.supabase.co/functions/v1/mcp"
+    }
+  }
+}
+```
+
+Install `@tobiasoberpaul/mdk` in your application when you use its animation API.
+
+## Local stdio
 
 From the repository, run `npm ci` and `npm run build` once. Configure your client to launch:
 
@@ -41,6 +59,22 @@ VS Code-style entry:
 }
 ```
 
+## Supabase deployment
+
+The `mcp` Edge Function exposes the same read-only MDK tools, resources and prompt over Streamable HTTP. Its generated bundle contains the public guide, integration rules, CSS tokens, behavior definitions and API declarations. The endpoint is public and needs no database.
+
+With a Supabase project and Node.js 20 or newer, run from the repository root:
+
+```sh
+npm ci
+npm run build
+node scripts/build-mcp-edge.mjs
+npx supabase login
+npx supabase functions deploy mcp --remote=<project-ref> --use-api --no-verify-jwt
+```
+
+Rebuild the bundle before each deployment to keep the served reference in sync with the library.
+
 ## What the AI receives
 
 | Capability | Purpose |
@@ -52,13 +86,13 @@ VS Code-style entry:
 | `motion://instructions` | Portable integration rules. |
 | `integrate_motion` prompt | A starting instruction for an AI-assisted component integration. |
 
-Guide, API, token and behavior responses are loaded from this checkout's documentation/build output. There is no separately maintained copy of the token values or API signatures. Rebuild after library API changes.
+The hosted endpoint serves the reference bundled at deployment. The local adapter reads the guide, API declarations, tokens and behavior definitions from the checkout and its build output.
 
 Example request to your AI: “Use the Motion Library MCP to add an interruptible Grow transition to this existing popover. Preserve its accessibility and positioning.”
 
 ## Compatibility and scope
 
-The adapter uses newline-delimited JSON-RPC over stdio. It supports initialization-based MCP versions 2025-03-26 / 2025-06-18 / 2025-11-25 and discovery-based version 2026-07-28. It offers read-only tools/resources/prompts, not remote HTTP hosting or resource subscriptions. Compatibility is conditional on the client's MCP implementation; it has not been certified in every AI product.
+The local adapter uses newline-delimited JSON-RPC over stdio. It supports initialization-based MCP versions 2025-03-26 / 2025-06-18 / 2025-11-25 and discovery-based version 2026-07-28. The Edge Function uses stateless Streamable HTTP and supports initialization-based clients through version 2025-11-25. Both adapters offer read-only tools, resources and prompts.
 
 For clients without MCP, provide `ai/INSTRUCTIONS.md` and `docs/LIBRARY.md` as repository context, or reference them from the client's own instruction file. A model-specific skill or power is not required.
 

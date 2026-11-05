@@ -4,6 +4,7 @@ Keep shared page layout consistent across Home, Documentation, Examples (both pr
 
 Use `page-spacing.css` for shared spacing and `page-header.jsx` for shared page headings.
 Use `--site-workspace-width` for the header and workspace bounds. Reading content has its own width token.
+Keep page content in `docs/*.mdx` and public paths in `routes.js`. Resolve interactive assets from the site root so nested routes and GitHub Pages subpaths work.
 
 # Website motion source
 

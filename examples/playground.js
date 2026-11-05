@@ -1,4 +1,4 @@
-export function createPlaygroundController(container,{settings,animation,progress,onProgress,onStatus}){
+export function createPlaygroundController(container,{siteRoot,settings,animation,progress,onProgress,onStatus}){
  let canvas,requestedProvider,active,animations=[],epoch=0,preparing=false,disposed=false;
  const canvases=new Map();
  const api=()=>canvas?.contentWindow?.motionPlayground;
@@ -95,10 +95,9 @@ export function createPlaygroundController(container,{settings,animation,progres
     item.title=provider==='db'?'DB React motion examples':'shadcn motion examples';
     item.dataset.provider=provider;item.style.visibility='hidden';item.style.pointerEvents='none';item.inert=true;item.setAttribute('aria-hidden','true');
     canvases.set(provider,item);container.append(item);
-    item.src=`./${provider==='db'?'db-react':'shadcn'}/?embed=1&theme=${settings().theme}`;
+    item.src=new URL(`examples/${provider==='db'?'db-react':'shadcn'}/?embed=1&theme=${settings().theme}`,siteRoot).href;
    }
    showProvider();
-   const url=new URL(location.href);url.searchParams.set('components',value);history.replaceState(null,'',url);
   },
   scrollHome(){canvas?.contentWindow?.scrollTo({top:0,behavior:'instant'});},
   destroy(){disposed=true;epoch++;window.removeEventListener('motion-playground-ready',ready);window.removeEventListener('motion-playground-interaction',interact);animations.forEach(a=>a.cancel());animations=[];active=undefined;canvases.forEach(item=>item.remove());canvases.clear();}
