@@ -125,21 +125,48 @@ export function Documentation({ai=false}){
    </TooltipProvider>
  </nav><article>
  {!ai&&<> <PageHeader title="Documentation">Framework-independent visual transitions built with TypeScript, CSS tokens and the Web Animations API.</PageHeader>
- <section id="getting-started"><h2>Getting started</h2><p>Load the library styles, measure an existing component and create a controller. Components keep ownership of layout, positioning, accessibility and presence.</p><Code>{`import { createGrowTransition } from './dist/index.js';
-// Load dist/styles/motion.css in your page.
-const target = document.querySelector('#target');
-const trigger = document.querySelector('#trigger');
+ <section id="getting-started"><h2>Getting started</h2>
+ <p>Install MDK from npm in your project.</p>
+ <Code>{'npm install @tobiasoberpaul/mdk'}</Code>
+ <h3 className="docs-subheading">Add the button and panel</h3>
+ <Code>{`<button type="button" id="toggle-details"
+  aria-controls="details" aria-expanded="false">
+  Toggle details
+</button>
+<section id="details" aria-labelledby="details-title" hidden>
+  <h2 id="details-title">Details</h2>
+  <p>This panel opens and closes with a reversible Grow transition.</p>
+</section>`}</Code>
+ <h3 className="docs-subheading">Connect the transition</h3>
+ <p>In your app’s JavaScript entry point, import the controller and CSS. This example assumes a bundler that supports CSS imports. Run the setup after the markup is mounted.</p>
+ <Code>{`import { createGrowTransition } from '@tobiasoberpaul/mdk';
+import '@tobiasoberpaul/mdk/motion.css';
+
+const panel = document.querySelector('#details');
+const button = document.querySelector('#toggle-details');
+
 const transition = createGrowTransition({
-  content: target,
-  reveal: [...target.children],
+  content: panel,
+  reveal: [...panel.children],
   onStateChange(state) {
     if (state === 'destroyed') return;
-    target.hidden = state === 'closed';
-    target.inert = state === 'closed' || state === 'closing';
+    const expanded = state === 'opening' || state === 'open';
+    button.setAttribute('aria-expanded', String(expanded));
+    panel.hidden = state === 'closed';
+    panel.inert = !expanded;
   },
 });
-trigger.addEventListener('click', () => transition.toggle());
-// On component unmount: transition.destroy();`}</Code><p>The target must be measurable when opening. Keep it mounted throughout the exit animation.</p></section>
+
+const toggle = () => transition.toggle();
+button.addEventListener('click', toggle);
+
+// If the component unmounts, run this cleanup first.
+function dispose() {
+  button.removeEventListener('click', toggle);
+  transition.destroy();
+}`}</Code>
+ <p>Click the button to open and close the panel. Clicking again mid-transition reverses it. Your component manages visibility and accessibility. The panel stays mounted until the exit animation finishes.</p>
+ </section>
  <section id="behaviors"><h2>Behaviors</h2><div className="docs-table"><table><thead><tr><th>HTML name</th><th>Factory</th><th>Behavior</th></tr></thead><tbody>{[
  ['grow','createGrowTransition','Grow from a local anchor or a trigger edge.'],['extract','createExtractTransition','Expand a copy of the trigger into the target; retain the original trigger.'],['morph','createMorphTransition','Transform the trigger into the target; the integration hides the original while open.'],['slide','createSlideTransition','Translate from an edge or move between navigation levels.'],['fade','createContentTransition','Reveal content with fade, blur and a subtle lift.'],
  ].filter(([name])=>motionBehaviors[name]).map(row=><tr key={row[0]}>{row.map(cell=><td key={cell}>{cell}</td>)}</tr>)}</tbody></table></div><p>Grow, Extract and Morph keep the inner content stationary and reveal it with fade and blur. All controllers expose <code>open()</code>, <code>close()</code>, <code>toggle()</code>, <code>destroy()</code>, <code>state</code> and <code>isOpen</code>. Reversing an active transition reuses its timeline.</p></section>
@@ -199,6 +226,6 @@ const stop = observeMotion([{element: block, transition}], {
 });
 // On unmount: unbind(); transition.destroy();`}</Code><p>Outside-click dismissal is opt-in. Omit it for persistent dialogs. Screen-reader and real-device validation is still needed for each consuming application.</p></section>
 <section id="ai-integration"><h2>AI integration</h2><p>Connect your coding assistant to the library guide, tokens, API and integration examples through the local MCP server.</p><Button asChild variant="outline"><a href="?view=ai">Read the MCP setup</a></Button></section>
-</>}{ai&&<><PageHeader title="AI integration">Connect your coding assistant to the Motion Library through MCP.</PageHeader><section id="overview"><h2>Build with your AI assistant</h2><p>Give your coding assistant the same motion reference you use. The local Model Context Protocol (MCP) server supplies the library's guide, tokens and TypeScript API directly from this package.</p><p>Use any client that supports local stdio MCP servers. The integration is independent of the AI model and needs no API key or hosted service.</p></section><section id="setup"><h2>Connect the MCP server</h2><ol><li>Build the checkout with <code>npm run build</code>.</li><li>Add the configuration below to your client's MCP settings, replacing the absolute path.</li><li>Restart the connection and ask your assistant to use Motion Library.</li></ol><Code>{JSON.stringify({mcpServers:{'motion-library':{command:'node',args:['/absolute/path/to/animations/ai/mcp-server.mjs']}}},null,2)}</Code><p>Clients with a different configuration schema can use the same command and arguments. After installing the package, the executable is <code>motion-library-mcp</code>. The registry release is still being prepared.</p><h3>Client configuration</h3><p>For VS Code clients use the servers key and set type to stdio:</p><Code>{JSON.stringify({servers:{'motion-library':{type:'stdio',command:'node',args:['/absolute/path/to/animations/ai/mcp-server.mjs']}}},null,2)}</Code><p>Use Node 18 or newer. Paths are resolved relative to the server file, so the client working directory does not matter. Restart the server after rebuilding.</p></section><section id="capabilities"><h2>What your assistant can use</h2><table><thead><tr><th>Capability</th><th>What it provides</th></tr></thead><tbody><tr><td>Library reference</td><td>Current guide, CSS tokens, API declarations and behavior definitions.</td></tr><tr><td>Integration examples</td><td>Grow, Extract, Morph, Slide and Fade with click, hover, focus, observer, scroll or manual activation.</td></tr><tr><td>Integration rules</td><td>Preserve component layout, accessibility, progressive reveal and cleanup.</td></tr></tbody></table><blockquote>Use the Motion Library MCP to add a reversible Grow transition to this popover. Preserve its positioning and keyboard behavior.</blockquote><p>The tools return reference text and example code. They do not edit files or execute code. Your coding assistant applies changes through its own tools. The MCP runs locally; this website does not start a server.</p></section><section id="without-mcp"><h2>Without MCP</h2><p>Without MCP, add <code>ai/INSTRUCTIONS.md</code> and the library guide to your assistant's project context.</p><p>Include the integration rules in your assistant’s project instructions: use the installed library API; preserve component positioning, semantics and focus; include every visible element in reveal groups; respect reduced motion; destroy controllers and listeners on unmount. The reference guide and API are available on the Documentation page.</p></section></>} <footer className="docs-download" aria-labelledby="docs-download-title"><Card className="docs-download-card"><h2 id="docs-download-title">Put motion into practice.</h2><p>Explore the library in a live preview and adapt the HTML to your components.</p><Button asChild><a href="?view=code">Open the code playground</a></Button></Card></footer>
+</>}{ai&&<><PageHeader title="AI integration">Connect your coding assistant to the Motion Library through MCP.</PageHeader><section id="overview"><h2>Build with your AI assistant</h2><p>Give your coding assistant the same motion reference you use. The local Model Context Protocol (MCP) server supplies the library's guide, tokens and TypeScript API directly from this package.</p><p>Use any client that supports local stdio MCP servers. The integration is independent of the AI model and needs no API key or hosted service.</p></section><section id="setup"><h2>Connect the MCP server</h2><ol><li>Build the checkout with <code>npm run build</code>.</li><li>Add the configuration below to your client's MCP settings, replacing the absolute path.</li><li>Restart the connection and ask your assistant to use Motion Library.</li></ol><Code>{JSON.stringify({mcpServers:{'motion-library':{command:'node',args:['/absolute/path/to/animations/ai/mcp-server.mjs']}}},null,2)}</Code><p>Clients with a different configuration schema can use the same command and arguments.</p><h3>Client configuration</h3><p>For VS Code clients use the servers key and set type to stdio:</p><Code>{JSON.stringify({servers:{'motion-library':{type:'stdio',command:'node',args:['/absolute/path/to/animations/ai/mcp-server.mjs']}}},null,2)}</Code><p>Use Node 18 or newer. Paths are resolved relative to the server file, so the client working directory does not matter. Restart the server after rebuilding.</p></section><section id="capabilities"><h2>What your assistant can use</h2><table><thead><tr><th>Capability</th><th>What it provides</th></tr></thead><tbody><tr><td>Library reference</td><td>Current guide, CSS tokens, API declarations and behavior definitions.</td></tr><tr><td>Integration examples</td><td>Grow, Extract, Morph, Slide and Fade with click, hover, focus, observer, scroll or manual activation.</td></tr><tr><td>Integration rules</td><td>Preserve component layout, accessibility, progressive reveal and cleanup.</td></tr></tbody></table><blockquote>Use the Motion Library MCP to add a reversible Grow transition to this popover. Preserve its positioning and keyboard behavior.</blockquote><p>The tools return reference text and example code. They do not edit files or execute code. Your coding assistant applies changes through its own tools. The MCP runs locally; this website does not start a server.</p></section><section id="without-mcp"><h2>Without MCP</h2><p>Without MCP, add <code>ai/INSTRUCTIONS.md</code> and the library guide to your assistant's project context.</p><p>Include the integration rules in your assistant’s project instructions: use the installed library API; preserve component positioning, semantics and focus; include every visible element in reveal groups; respect reduced motion; destroy controllers and listeners on unmount. The reference guide and API are available on the Documentation page.</p></section></>} <footer className="docs-download" aria-labelledby="docs-download-title"><Card className="docs-download-card"><h2 id="docs-download-title">Put motion into practice.</h2><p>Explore the library in a live preview and adapt the HTML to your components.</p><Button asChild><a href="?view=code">Open the code playground</a></Button></Card></footer>
  </article></div>;
 }

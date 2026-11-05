@@ -20,12 +20,11 @@ content, unless reflow is intentional (the three-column layout).
 
 ## Import and lifecycle
 
-The package name is `@design-system/motion`; currently use a local/workspace
-package, not an assumed public npm release.
+The package name is `@tobiasoberpaul/mdk`.
 
 ```ts
-import { createScaleTransition } from '@design-system/motion';
-import '@design-system/motion/motion.css';
+import { createScaleTransition } from '@tobiasoberpaul/mdk';
+import '@tobiasoberpaul/mdk/motion.css';
 
 const surface = document.querySelector<HTMLElement>('#dialog')!;
 const trigger = document.querySelector<HTMLButtonElement>('#open')!;
@@ -181,7 +180,7 @@ install event listeners, position components or manage hidden/focus on their own
 ```
 
 ```ts
-import { createMotion } from '@design-system/motion';
+import { createMotion } from '@tobiasoberpaul/mdk';
 const content = document.querySelector<HTMLElement>('#panel')!;
 const transition = createMotion({
   content,
@@ -266,7 +265,7 @@ so content still has time to fade.
 ## Independent screen entry
 
 ```ts
-import { createContentTransition, observeMotion } from '@design-system/motion';
+import { createContentTransition, observeMotion } from '@tobiasoberpaul/mdk';
 
 const entries = [...document.querySelectorAll<HTMLElement>('[data-page-block]')]
   .map(element => ({

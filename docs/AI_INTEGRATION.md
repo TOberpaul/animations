@@ -62,8 +62,4 @@ The adapter uses newline-delimited JSON-RPC over stdio. It supports initializati
 
 For clients without MCP, provide `ai/INSTRUCTIONS.md` and `docs/LIBRARY.md` as repository context, or reference them from the client's own instruction file. A model-specific skill or power is not required.
 
-The GitHub Pages website cannot run a Node stdio process. The server runs locally alongside the AI client. The package has not been published to npm; use the local command above rather than an assumed npx package.
-
-## Installed package
-
-The package exposes the `motion-library-mcp` executable. After installing the package, clients can launch that command directly. Until the first registry release, use the local checkout or install its packed `.tgz` file. No registry name is assumed available.
+The stdio server runs locally alongside the AI client. Launch it from a built repository checkout using the command above.

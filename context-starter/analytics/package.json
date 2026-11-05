@@ -6,7 +6,7 @@
     "start": "node serve.mjs"
   },
   "dependencies": {
-    "@design-system/motion": "file:../..",
+    "@tobiasoberpaul/mdk": "file:../..",
     "clsx": "2.1.1",
     "esbuild": "0.21.5",
     "postcss": "8.5.6",

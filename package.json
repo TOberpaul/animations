@@ -1,15 +1,10 @@
 {
-  "name": "@design-system/motion",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@tobiasoberpaul/mdk",
+  "version": "0.1.1",
   "type": "module",
   "files": [
     "dist",
-    "ai",
-    "docs/LIBRARY.md",
-    "docs/AI_INTEGRATION.md",
-    "docs/PUBLISHING.md",
-    "THIRD_PARTY_NOTICES.md"
+    "docs/LIBRARY.md"
   ],
   "exports": {
     ".": {
@@ -63,7 +58,6 @@
     "type": "git",
     "url": "git+https://github.com/TOberpaul/animations.git"
   },
-  "homepage": "https://toberpaul.github.io/animations/",
   "bugs": {
     "url": "https://github.com/TOberpaul/animations/issues"
   },
@@ -72,8 +66,7 @@
     "motion",
     "waapi",
     "typescript",
-    "design-system",
-    "mcp"
+    "design-system"
   ],
   "engines": {
     "node": ">=18"
@@ -81,9 +74,7 @@
   "sideEffects": [
     "**/*.css"
   ],
-  "bin": {
-    "motion-library-mcp": "./ai/mcp-server.mjs"
-  },
+
   "publishConfig": {
     "access": "public"
   },

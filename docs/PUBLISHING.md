@@ -5,8 +5,7 @@ The package is prepared for npm and can also be installed with pnpm. Both use th
 ## Release prerequisites
 
 - License: MIT. Copyright is attributed to TOberpaul; verify attribution when accepting external contributions.
-- Confirm ownership of the current `@design-system` scope, or replace the package name and all import examples with an available name you own.
-- Keep `private: true` until those decisions are complete. This deliberately prevents accidental publication.
+- Sign in to npm with publish access to the `@tobiasoberpaul` scope. Check the account with `npm whoami`.
 - Confirm the version in package.json and package-lock.json, and record release changes.
 
 ## Validate the artifact
@@ -14,18 +13,17 @@ The package is prepared for npm and can also be installed with pnpm. Both use th
 ```sh
 npm ci
 npm run build
-npm run check:mcp
 npm pack --dry-run
 npm pack
 ```
 
-The `prepack` hook builds the library. The package contains built ESM, TypeScript declarations, CSS, the MCP executable and public guides. React integrations, website assets, credentials and development dependencies are excluded. The core and MCP have no runtime dependencies.
+The `prepack` hook builds the library. The package contains built ESM, TypeScript declarations, CSS, the library guide, the consumer README and the MIT license. The library has zero runtime dependencies.
 
-Install the resulting `.tgz` into a temporary consumer project and verify ESM imports and `motion-library-mcp`. CSS is available through `@design-system/motion/motion.css`. Browser APIs are needed only when creating an animation; importing the module is safe without a browser.
+Install the resulting `.tgz` into a temporary consumer project and verify the ESM and CSS exports. CSS is available through `@tobiasoberpaul/mdk/motion.css`. Browser APIs are needed when creating an animation. Importing the module works without a browser.
 
 ## Publish when ready
 
-After the prerequisites are resolved, remove `private: true`, sign in to the npm account that owns the chosen name, then run:
+After validation, publish `@tobiasoberpaul/mdk` to the public npm registry:
 
 ```sh
 npm publish --access public

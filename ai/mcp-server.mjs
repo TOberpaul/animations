@@ -53,7 +53,7 @@ function example(args){
 </div>
 
 // Load the library's motion.css in your application.
-import {createInteractiveMotion} from '@design-system/motion';
+import {createInteractiveMotion} from '@tobiasoberpaul/mdk';
 const target = document.querySelector('#target');
 const trigger = document.querySelector('#trigger');
 const motion = createInteractiveMotion({

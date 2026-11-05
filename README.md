@@ -1,95 +1,28 @@
-# UI Motion Library
+# MDK · UI Motion Library
 
-A small, framework-independent TypeScript motion library using native Web
-Animations API (WAAPI), CSS tokens and reversible transitions. React is used only
-by the DB React and shadcn/ui playground integrations.
+MDK is a framework-independent TypeScript library for reversible UI transitions. It uses the Web Animations API and CSS custom properties.
 
-## Run locally
+## Install
 
 ```sh
-npm install
-npm run dev
+npm install @tobiasoberpaul/mdk
 ```
 
-Open [the playground](http://127.0.0.1:4173/examples/).
+## Use
 
-## Publish the website
+```js
+import { createGrowTransition } from '@tobiasoberpaul/mdk';
+import '@tobiasoberpaul/mdk/motion.css';
 
-```sh
-npm ci
-npm run build:site
+const panel = document.querySelector('#panel');
+const toggle = document.querySelector('#toggle');
+const motion = createGrowTransition({ content: panel });
+
+toggle.addEventListener('click', () => motion.toggle());
 ```
 
-Upload the contents of `site/` to a static host, or configure its build command
-as `npm run build:site` and publish directory as `site`. The site includes
-Examples, Code playground and Documentation. Subdirectory hosting works without
-route rewrites. Preview the generated site locally at
-[the static build](http://127.0.0.1:4173/site/) while the dev server is running.
+Your component manages layout, visibility, focus and accessibility. MDK handles the visual transition, including reversal and the system's reduced-motion preference.
 
-GitHub Pages is deployed by `.github/workflows/pages.yml` on every push to
-`main`. Set **Settings → Pages → Source → GitHub Actions** in the repository.
-Website: https://toberpaul.github.io/animations/
+The library includes Grow, Extract, Morph, Slide and Content transitions. See the [library guide](https://github.com/TOberpaul/animations/blob/main/docs/LIBRARY.md) for the API, CSS tokens and integration patterns.
 
-- **Examples:** switch between DB React and shadcn/ui, light/dark mode, reduced
-  motion, duration, progression gap and overshoot; scrub real animation frames.
-- **Code playground:** edit HTML with live preview. Define
-  motion in code through attributes/classes or direct factories. Drafts are
-  stored locally. Exported HTML references the running library server.
-
-```sh
-npm run build           # TypeScript library and CSS → dist/
-npm run build:examples  # Both component integrations and playground shell
-```
-
-The current package is private and has not been published to npm. Consume this
-checkout through a workspace/local package or import the built files. No runtime
-framework dependencies are required by the library.
-
-## Documentation
-
-See **[Library guide](docs/LIBRARY.md)** for the public API, declarative markup,
-tokens, content sequencing, viewport entry and component integration examples.
-
-| Playground animation | Example artifacts |
-| --- | --- |
-| Grow | Action menu, dialog, side panel, notification, three-column panels, split-button menu |
-| Extract | Action menu with a retained source button |
-| Morph | Replacing action menu, rename input |
-| Slide | Two-level submenu |
-| Content | Text block, image/caption and independently revealed page blocks |
-
-All component examples use the same core library. Components own positioning,
-content, accessibility, focus and lifecycle. The library owns visual transitions.
-Grow/Morph/Extract contents use fade and blur without an independent content
-slide. Content uses a fixed slide + blur + fade combination.
-
-## Defaults
-
-- Duration: **300ms**; Content uses this duration per item.
-- Easing: symmetric ease-in-out.
-- Overshoot: **15% of the shorter side, capped at .75rem**.
-- Playground progression: enabled, **24ms** start spacing.
-- Library progression: enabled by default; set `--motion-content-progressive: 0` to disable.
-- Reduced motion: respects the OS preference and the playground switch.
-
-The DB integration uses installed DB component/theme packages. Optional licensed
-DB Neo/icon assets require locally configured `ASSET_PASSWORD` and
-`ASSET_INIT_VECTOR`; they are not included in this repository. The examples use
-fallback icons where applicable. Keep credentials in ignored local environment
-files.
-
-Generated builds, dependencies and local visual-check output are ignored by Git.
-
-## AI coding clients
-
-A local read-only MCP server shares the guide, built API declarations, tokens and integration examples with compatible AI clients. See [AI integration setup](docs/AI_INTEGRATION.md). Start with `npm run build`, then configure `node /absolute/path/to/animations/ai/mcp-server.mjs` as a stdio MCP server. Portable integration rules are in `ai/INSTRUCTIONS.md`.
-
-## Local Codex analytics
-
-Run `npm run analytics` and open the printed address. It reads token counts and available five-hour account snapshots from local Codex history for recorded work-package turns. The optional project hook adds local request telemetry and can be trusted under **Settings → Hooks** or with `/hooks`. The [Context Starter](context-starter/README.md) describes the data format.
-
-## License and package releases
-
-Original library and MCP code is licensed under [MIT](LICENSE). Third-party example dependencies retain their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
-
-See [publishing](docs/PUBLISHING.md) for npm package validation and release steps. The registry package is not published yet.
+Licensed under [MIT](LICENSE).
