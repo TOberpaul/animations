@@ -1,7 +1,7 @@
 import {Card} from './shadcn/components/ui/card';
 import {PageHeader} from './page-header.jsx';
 import React,{useLayoutEffect,useRef,useState} from 'react';
-import {motionBehaviors} from '../dist/index.js';
+import {createGrowTransition,motionBehaviors} from '../dist/index.js';
 import {Button} from './shadcn/components/ui/button';
 import {Tooltip,TooltipContent,TooltipProvider,TooltipTrigger} from './shadcn/components/ui/tooltip';
 import {ArrowLeft} from 'lucide-react';
@@ -9,6 +9,44 @@ import {ArrowLeft} from 'lucide-react';
 const documentationSections=['Getting started','Behaviors','HTML attributes','Interaction triggers','Content and timing','Design tokens','Lifecycle and accessibility','AI integration'];
 const slug=text=>text.toLowerCase().replaceAll(' ','-');
 function Code({children}){return <pre><code>{children}</code></pre>;}
+
+function createTocMarker(element){
+ let motion,from='idle',to='idle',target='idle';
+ return {
+   set(next){
+     if(next===target)return;
+     target=next;
+     if(motion&&next===from){motion.close();return;}
+     if(motion&&next===to){motion.open();return;}
+     const style=getComputedStyle(element);
+     const width=style.width,color=style.color;
+     const source=element.dataset.length??'idle';
+     // A retargeted frame may be between sizes, so only reuse settled endpoints.
+     from=motion&&(motion.state==='opening'||motion.state==='closing')?undefined:source;
+     motion?.destroy();
+     to=next;
+     element.style.width=width;
+     element.style.color=color;
+     motion=createGrowTransition({
+       content:element,trigger:element,axis:'width',
+       onStateChange(state){
+         if(state==='opening'){
+           element.dataset.length=to;
+           element.style.removeProperty('width');
+           element.style.removeProperty('color');
+         }
+         if(state==='closed')element.dataset.length=source;
+       },
+     });
+     motion.open();
+   },
+   destroy(){
+     motion?.destroy();
+     delete element.dataset.length;
+   },
+ };
+}
+
 export function Documentation({ai=false}){
  const sections=ai?['Overview','Setup','Capabilities','Without MCP']:documentationSections;
  const root=useRef(null),[active,setActive]=useState({current:undefined,visible:[]});
@@ -19,6 +57,7 @@ export function Documentation({ai=false}){
    const compact=matchMedia('(max-width:1279.98px)');
    const links=[...toc.querySelectorAll('.docs-toc-section')];
    const targets=links.map(link=>scroller.querySelector(link.hash));
+   let markers=[];
    let frame=0;
    function update(){
      frame=0;
@@ -37,6 +76,10 @@ export function Documentation({ai=false}){
      });
      const current=visible.reduce((selected,section)=>section.top<limit?section:selected,visible[0]);
      const ids=visible.map(section=>section.id);
+     markers.forEach((marker,index)=>{
+       const isVisible=offset=>ids.includes(targets[index+offset]?.id);
+       marker.set(isVisible(0)?'active':isVisible(-1)||isVisible(1)?'nearby':'idle');
+     });
      setActive(previous=>previous.current===current?.id&&previous.visible.length===ids.length&&
        ids.every((id,index)=>id===previous.visible[index])?previous:{current:current?.id,visible:ids});
      if(!current)return;
@@ -48,12 +91,19 @@ export function Documentation({ai=false}){
      toc.scrollTop+=Math.min(0,link.top-topEdge)+Math.max(0,link.bottom-topEdge-toc.clientHeight);
    }
    function schedule(){if(!frame)frame=requestAnimationFrame(update);}
+   function configureMarkers(){
+     markers.forEach(marker=>marker.destroy());
+     markers=compact.matches?[]:links.map(link=>createTocMarker(link.querySelector('.docs-toc-marker')));
+     schedule();
+   }
+   compact.addEventListener('change',configureMarkers);
+   configureMarkers();
    scroller.addEventListener('scroll',schedule,{passive:true});
    const resize=new ResizeObserver(schedule);resize.observe(scroller);resize.observe(scroller.querySelector('article'));resize.observe(toc);resize.observe(header);
    update();
    const initial=targets.find(target=>'#'+target.id===location.hash);
    const anchorFrame=requestAnimationFrame(()=>{if(initial)scroller.scrollTop+=initial.getBoundingClientRect().top-scroller.getBoundingClientRect().top-(parseFloat(getComputedStyle(scroller).scrollPaddingTop)||0);});
-   return()=>{cancelAnimationFrame(anchorFrame);scroller.removeEventListener('scroll',schedule);resize.disconnect();cancelAnimationFrame(frame);};
+   return()=>{cancelAnimationFrame(anchorFrame);scroller.removeEventListener('scroll',schedule);resize.disconnect();cancelAnimationFrame(frame);compact.removeEventListener('change',configureMarkers);markers.forEach(marker=>marker.destroy());};
  },[]);
  return <div className="documentation" ref={root}>
  <nav aria-label="Documentation sections">
@@ -66,6 +116,7 @@ export function Documentation({ai=false}){
        const id=slug(title);
        return <Tooltip key={id}>
          <TooltipTrigger asChild><a className="docs-toc-section" href={'#'+id} aria-label={title} aria-current={active.current===id?'location':undefined} data-active={active.visible.includes(id)}>
+           <span className="docs-toc-marker" aria-hidden="true"/>
            <span className="docs-toc-label">{title}</span>
          </a></TooltipTrigger>
          <TooltipContent side="right" className="docs-toc-tooltip">{title}</TooltipContent>

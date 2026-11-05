@@ -8,3 +8,5 @@ examples/shadcn/build/
 .env.*
 
 site/
+/.codex/context-usage.jsonl
+/.codex/context-packages.json

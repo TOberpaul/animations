@@ -22,6 +22,7 @@
     "build": "tsc && node scripts/copy-css.mjs",
     "build:examples": "node scripts/build-db-react.mjs && node scripts/build-shadcn.mjs",
     "build:shadcn": "node scripts/build-shadcn.mjs",
+    "analytics": "node context-starter/analytics/serve.mjs . --codex-history",
     "dev": "npm run build && npm run build:examples && node scripts/serve.mjs",
     "test": "npm run build && npm run build:examples && playwright test",
     "build:site": "npm run build && npm run build:examples && node scripts/build-site.mjs",

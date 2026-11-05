@@ -84,6 +84,10 @@ Generated builds, dependencies and local visual-check output are ignored by Git.
 
 A local read-only MCP server shares the guide, built API declarations, tokens and integration examples with compatible AI clients. See [AI integration setup](docs/AI_INTEGRATION.md). Start with `npm run build`, then configure `node /absolute/path/to/animations/ai/mcp-server.mjs` as a stdio MCP server. Portable integration rules are in `ai/INSTRUCTIONS.md`.
 
+## Local Codex analytics
+
+Run `npm run analytics` and open the printed address. It reads token counts and available five-hour account snapshots from local Codex history for recorded work-package turns. The optional project hook adds local request telemetry and can be trusted under **Settings → Hooks** or with `/hooks`. The [Context Starter](context-starter/README.md) describes the data format.
+
 ## License and package releases
 
 Original library and MCP code is licensed under [MIT](LICENSE). Third-party example dependencies retain their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).

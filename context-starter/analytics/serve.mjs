@@ -1,35 +1,71 @@
-import { build } from 'esbuild';
+import { context } from 'esbuild';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import postcss from 'postcss';
 import tailwind from 'tailwindcss';
 import { readAnalytics } from './data.mjs';
 
 const app = dirname(fileURLToPath(import.meta.url));
-const project = resolve(process.argv[2] ?? process.env.INIT_CWD ?? process.cwd());
-const [bundle, stylesheet] = await Promise.all([
-  build({
-    entryPoints: [join(app, 'app.jsx')], bundle: true, write: false, jsx: 'automatic',
-    alias: { '@': app }, define: { 'process.env.NODE_ENV': '"production"' },
-  }),
-  readFile(join(app, 'styles.css'), 'utf8'),
-]);
-const css = tailwind({
+const args = process.argv.slice(2);
+const project = resolve(args.find((arg) => arg !== '--codex-history') ?? process.env.INIT_CWD ?? process.cwd());
+const history = args.includes('--codex-history')
+  ? join(process.env.CODEX_HOME || join(homedir(), '.codex'), 'sessions') : undefined;
+const theme = {
   content: [join(app, 'app.jsx'), join(app, 'components/**/*.jsx')],
   theme: { extend: { colors: {
     card: '#141820', 'card-foreground': '#f4f6fb', background: '#10131a',
     input: '#363e4d', accent: '#242b38', 'accent-foreground': '#fff', ring: '#a4bcff',
   } } },
+};
+let assets, revision;
+const build = await context({
+  entryPoints: [join(app, 'app.jsx'), join(app, 'styles.css')],
+  outdir: join(app, 'build'), bundle: true, write: false, jsx: 'automatic',
+  alias: { '@': app }, define: { 'process.env.NODE_ENV': '"production"' },
+  plugins: [{
+    name: 'analytics-live-reload',
+    setup(builder) {
+      builder.onLoad({ filter: /styles\.css$/ }, async ({ path }) => {
+        const source = await readFile(path, 'utf8');
+        const { css } = await postcss([tailwind(theme)]).process(source, { from: path });
+        return { contents: css, loader: 'css', watchFiles: [path] };
+      });
+      builder.onEnd(({ errors, outputFiles }) => {
+        if (errors.length) return;
+        const script = outputFiles.find((file) => file.path.endsWith('app.js'));
+        const css = outputFiles.find((file) => file.path.endsWith('styles.css'));
+        revision = JSON.stringify([script.hash, css.hash]);
+        assets = new Map([
+          ['/styles.css', ['text/css', css.contents]],
+          ['/app.js', ['text/javascript', script.contents]],
+        ]);
+      });
+    },
+  }],
 });
-const { css: compiled } = await postcss([css]).process(stylesheet, { from: undefined });
+await build.rebuild();
+await build.watch();
 
-const assets = new Map([
-  ['/', ['text/html', '<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI Analytics</title><link rel="stylesheet" href="/styles.css"><div id="root"></div><script defer src="/app.js"></script></html>']],
-  ['/styles.css', ['text/css', compiled]],
-  ['/app.js', ['text/javascript', bundle.outputFiles[0].contents]],
-]);
+function dashboardHtml() {
+  return `<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI Analytics</title><link rel="stylesheet" href="/styles.css"><div id="root"></div><script defer src="/app.js"></script>
+  <script>
+    const revision = ${JSON.stringify(revision)};
+    async function checkForUpdate() {
+      try {
+        const response = await fetch('/__version');
+        if (response.ok && (await response.text()) !== revision) {
+          location.reload();
+          return;
+        }
+      } catch {}
+      setTimeout(checkForUpdate, 1000);
+    }
+    setTimeout(checkForUpdate, 1000);
+  </script></html>`;
+}
 
 const server = createServer(async (request, response) => {
   const address = server.address();
@@ -39,10 +75,21 @@ const server = createServer(async (request, response) => {
   }
   response.setHeader('Cache-Control', 'no-store');
   response.setHeader('X-Content-Type-Options', 'nosniff');
-  if (request.url === '/api/analytics') {
+  if (request.url === '/') {
+    response.setHeader('Content-Type', 'text/html; charset=utf-8');
+    response.end(dashboardHtml());
+    return;
+  }
+  if (request.url === '/__version') {
+    response.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    response.end(revision);
+    return;
+  }
+  if (request.url.split('?')[0] === '/api/analytics') {
     response.setHeader('Content-Type', 'application/json; charset=utf-8');
     try {
-      response.end(JSON.stringify(await readAnalytics(project)));
+      const url = new URL(request.url, 'http://127.0.0.1');
+      response.end(JSON.stringify(await readAnalytics(project, url.searchParams.get('epic'), history)));
     } catch (error) {
       response.statusCode = 500;
       response.end(JSON.stringify({ error: error.message }));

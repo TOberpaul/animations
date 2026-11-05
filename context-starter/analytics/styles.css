@@ -21,6 +21,9 @@ h1 { font-size: clamp(2.25rem, 6vw, 3.75rem); line-height: 1.1; letter-spacing: 
 h2 { font-weight: 650; }
 .subtitle, .status, .panel p, .metric p, .muted { color: var(--muted); }
 .status { margin-block: 1.75rem .75rem; font-size: .875rem; overflow-wrap: anywhere; }
+.epic-filter { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; font-size: .875rem; }
+.epic-filter select { min-width: 0; max-width: 100%; padding: .4rem .6rem; border: 1px solid var(--line); border-radius: .375rem; background: #141820; }
+.epic-filter select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: .875rem; }
 .metric, .panel { border-color: var(--line); padding: clamp(1rem, 3vw, 1.5rem); }
 .metric h2 { font-size: .875rem; }
@@ -38,3 +41,7 @@ th, td { white-space: nowrap; padding: .65rem .75rem; border-bottom: 1px solid v
 thead th { color: var(--muted); font-size: .75rem; }
 .badge { border: 1px solid var(--line); border-radius: 999px; padding: .15rem .5rem; }
 .accepted { background: #173b32; color: #a8ead4; border-color: #285446; }
+.package-toggle { gap: .5rem; }
+.quota { display: block; font-size: .75rem; }
+.package-step { background: hsl(219 23% 12%); }
+.package-step th { padding-inline-start: 1.75rem; font-weight: 500; }

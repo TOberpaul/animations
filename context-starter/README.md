@@ -26,18 +26,26 @@ npm --prefix "<Pfad zum Starter>/analytics" start -- "<Pfad zum Zielprojekt>"
 
 Öffne die ausgegebene localhost-Adresse. **Aktualisieren** liest die Dateien des Zielprojekts erneut. Das Dashboard zeigt erfasste Tokens, Arbeitspakete und den Vergleich nach Story Points, Modell und Chat-Strategie. Die Dateien werden lokal gelesen.
 
-Für ausgewählte Arbeitspakete kannst du `telemetry/.codex/context-packages.json` übernehmen und lokal pflegen. Ein Eintrag pro Paket reicht. Das Feld `sessionIds` verbindet das Paket mit dem Verbrauchslog. Bei eigens gestarteten Chats reichen die Session-IDs. Bei wiederverwendeten Chats grenze die zugehörigen Turns zusätzlich mit `turnIds` ein.
+Änderungen an React-Komponenten und CSS laden den geöffneten Browser-Tab automatisch neu. Nach Änderungen am Analytics-Server oder seiner Datenaufbereitung startest du den Server neu.
+
+Mit `--codex-history` am Ende des Startbefehls liest das Dashboard zusätzlich lokale Codex-Sitzungen zu den gespeicherten Teilaufgaben. Es übernimmt nur Verbrauchsdaten der zugeordneten Turns und zählt sie bei vorhandenen Hook-Daten einmal. Die 5‑Stunden-Anzeige verwendet verfügbare Kontostände aus demselben Limitfenster.
+
+Kopiere `telemetry/.codex/context-packages.json` ins Projekt, um die Paketerfassung zu aktivieren. Codex legt einen Eintrag pro Paket an und erfasst jeden Durchlauf als Teilaufgabe. Session- und Turn-ID verbinden ihn mit den Token-Messwerten. Die aufgeklappte Paketzeile zeigt die einzelnen Durchläufe. Das Dashboard berechnet die Gesamtdauer, die Tokens und die Anzahl der Feedbackrunden daraus.
 
 ```json
 {
   "id": "P-001",
   "name": "Aktiven TOC-Eintrag sichtbar halten",
+  "epic": "Dokumentationsnavigation",
   "points": 2,
   "strategy": "fresh",
-  "sessionIds": ["erste-session", "fortsetzung"],
   "startedAt": "2026-11-05T10:00:00Z",
+  "completedAt": "2026-11-05T10:05:00Z",
   "acceptedAt": "2026-11-05T10:20:00Z",
-  "correctionRounds": 1
+  "subtasks": [
+    { "name": "TOC-Verhalten umsetzen", "kind": "implementation", "sessionId": "erste-session", "turnId": "umsetzung", "workSeconds": 100 },
+    { "name": "Scrollgrenze korrigieren", "kind": "feedback", "sessionId": "fortsetzung", "turnId": "korrektur", "workSeconds": 45 }
+  ]
 }
 ```
 

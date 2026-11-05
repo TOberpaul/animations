@@ -329,6 +329,29 @@ function HtmlEditor({code,onChange,onRun}){
 }
 
 const headerActionsQuery='(min-width:768px)';
+const minZoom=25,maxZoom=400;
+
+function fitCodeZoom(section){
+ const editor=section.querySelector('.inline-html-code');
+ const footer=section.querySelector('.code-editor-footer');
+ const style=getComputedStyle(editor);
+ const bounds=editor.getBoundingClientRect();
+ const height=Math.min(editor.clientHeight-parseFloat(style.paddingBottom),footer.getBoundingClientRect().top-bounds.top)-parseFloat(style.paddingTop);
+ if(height<=0||!editor.textContent.trim())return 100;
+ const target=height*.8;
+ const range=document.createRange();
+ range.selectNodeContents(editor);
+ // Measure the rendered lines so wrapping and inline controls count toward the fit.
+ let low=minZoom,high=maxZoom;
+ while(low<high){
+  const zoom=Math.ceil((low+high)/2);
+  editor.style.setProperty('--code-text-size',`${zoom/100}rem`);
+  if(range.getBoundingClientRect().height<=target)low=zoom;
+  else high=zoom-1;
+ }
+ editor.style.removeProperty('--code-text-size');
+ return low;
+}
 
 export function CodePlayground({settings,headerActions}){
  const [mobilePane,setMobilePane]=useState('editor');
@@ -340,8 +363,27 @@ export function CodePlayground({settings,headerActions}){
   update();
   return()=>media.removeEventListener('change',update);
  },[]);
- const [textZoom,setTextZoom]=useState(()=>{try{const value=Number(localStorage.getItem('motion-code-text-zoom-v2'));return value>=50&&value<=200?value:200;}catch{return 200;}});
- function zoom(value){const next=Math.max(50,Math.min(200,value));setTextZoom(next);try{localStorage.setItem('motion-code-text-zoom-v2',String(next));}catch{}}
+ const [textZoom,setTextZoom]=useState(100);
+ const editorSection=useRef(null),manualZoom=useRef(false);
+ useEffect(()=>{
+  const section=editorSection.current;
+  let frame=0;
+  const schedule=()=>{
+   if(manualZoom.current||frame)return;
+   frame=requestAnimationFrame(()=>{
+    frame=0;
+    if(!manualZoom.current)setTextZoom(fitCodeZoom(section));
+   });
+  };
+  const resize=new ResizeObserver(schedule);
+  // Inline attribute controls mount in their own React roots.
+  const content=new MutationObserver(schedule);
+  resize.observe(section);
+  content.observe(section.querySelector('.inline-html-code'),{childList:true,subtree:true});
+  schedule();
+  return()=>{cancelAnimationFrame(frame);resize.disconnect();content.disconnect();};
+ },[]);
+ function zoom(value){manualZoom.current=true;setTextZoom(Math.max(minZoom,Math.min(maxZoom,value)));}
  const [code,setCode]=useState(restore),[applied,setApplied]=useState(code),[error,setError]=useState(''),[revision,setRevision]=useState(0),[progress,setProgress]=useState(0),[previewOpen,setPreviewOpen]=useState(false);
  const frame=useRef(null),epoch=useRef(0);
  useEffect(()=>{const timer=setTimeout(()=>{setApplied(code);try{localStorage.setItem('motion-code-playground',JSON.stringify(code));}catch{}},400);return()=>clearTimeout(timer);},[code]);
@@ -365,6 +407,6 @@ export function CodePlayground({settings,headerActions}){
  </div>;
  const inHeader=wide&&headerActions;
  return <div className="code-playground" data-mobile-pane={mobilePane}><nav className="code-mobile-tabs" aria-label="Playground pane"><Button size="sm" variant={mobilePane==='editor'?'secondary':'ghost'} aria-pressed={mobilePane==='editor'} onClick={()=>setMobilePane('editor')}>HTML</Button><Button size="sm" variant={mobilePane==='preview'?'secondary':'ghost'} aria-pressed={mobilePane==='preview'} onClick={()=>setMobilePane('preview')}>Preview</Button></nav>
- <div className="code-split"><section className="code-editor border-r" style={{'--code-text-size':`${textZoom/100}rem`}}><HtmlEditor code={code} onChange={setCode} onRun={()=>{setApplied(code);setRevision(v=>v+1);}}/><div className="code-editor-footer"><div role="group" aria-label="Code text zoom" className="code-text-zoom"><Button type="button" variant="outline" size="icon" aria-label="Decrease code text size" disabled={textZoom<=50} onClick={()=>zoom(textZoom-10)}><Minus aria-hidden="true"/></Button><Button type="button" variant="outline" aria-label={`Reset code text zoom to 100 percent. Current zoom ${textZoom} percent`} onClick={()=>zoom(100)}>{textZoom}%</Button><Button type="button" variant="outline" size="icon" aria-label="Increase code text size" disabled={textZoom>=200} onClick={()=>zoom(textZoom+10)}><Plus aria-hidden="true"/></Button></div></div></section>
+ <div className="code-split"><section ref={editorSection} className="code-editor border-r" style={{'--code-text-size':`${textZoom/100}rem`}}><HtmlEditor code={code} onChange={value=>{manualZoom.current=true;setCode(value);}} onRun={()=>{setApplied(code);setRevision(v=>v+1);}}/><div className="code-editor-footer"><div role="group" aria-label="Code text zoom" className="code-text-zoom"><Button type="button" variant="outline" size="icon" aria-label="Decrease code text size" disabled={textZoom<=minZoom} onClick={()=>zoom(textZoom-10)}><Minus aria-hidden="true"/></Button><Button type="button" variant="outline" aria-label={`Reset code text zoom to 100 percent. Current zoom ${textZoom} percent`} onClick={()=>zoom(100)}>{textZoom}%</Button><Button type="button" variant="outline" size="icon" aria-label="Increase code text size" disabled={textZoom>=maxZoom} onClick={()=>zoom(textZoom+10)}><Plus aria-hidden="true"/></Button></div></div></section>
  <section className="code-preview"><div className="code-preview-controls border-b"><Button variant={previewOpen?"secondary":"outline"} aria-label="Preview open" aria-pressed={previewOpen} onClick={()=>act('toggle')}>{previewOpen?"Close":"Open"}</Button><label>Frame <input type="range" min="0" max="100" step=".1" value={progress} disabled={settings.reduced} onChange={e=>seek(Number(e.target.value))}/><output>{Math.round(progress)}%</output></label>{inHeader?createPortal(fileActions,headerActions):fileActions}</div><iframe ref={frame} title="Code live preview" sandbox="allow-scripts allow-same-origin" srcDoc={documentCode}/>{error&&<pre className="code-error" role="alert">{error}</pre>}</section></div></div>;
 }

@@ -4,11 +4,13 @@ Every visible part of an entering or exiting view must participate in its transi
 
 Preserve the motion behavior's existing recipe, progression settings, and reduced-motion handling. When a view changes, verify the visible elements in both directions.
 
-# Shared website layout
+# Projektwissen und Arbeitspakete
 
-Keep shared page layout consistent across Home, Documentation, Examples (both providers), and Code playground. Use shared components and layout tokens as the source of truth. For header, spacing, viewport, or scrolling changes, check every view at desktop and mobile widths. Scrolling content must reach behind the floating header to the viewport top; reserve initial header spacing inside the scroll content, never by shortening its viewport. Preserve deliberate differences such as the full-width code playground and non-scrolling Home.
-
-# Website motion source
-
-All website animations must use the Motion Library controllers and shared tokens, including navigation, settings, and decorative transitions. Do not introduce independent CSS or JavaScript animation recipes. Preserve reversal, overshoot settings, and reduced-motion behavior.
+- Vor Änderungen die lokalen `AGENTS.md` entlang der betroffenen Pfade lesen. Dauerhafte Entscheidungen, Invarianten und Prüfschritte im selben Arbeitsschritt im engsten passenden Ordner festhalten.
+- Bei unklarer Zuständigkeit `INHALT.md` lesen. Neue, verschobene oder entfernte Einstiegspunkte in der passenden Karte mitpflegen.
+- Umsetzungspakete vor Beginn in einer Zeile relativ schätzen. Nutze 1 (lokal und klar), 2 (begrenzte Untersuchung), 3 (bereichsübergreifend), 5 (grundlegend), 8 (mehrere gekoppelte Änderungen), 13 (großer Umbau) oder 20 (sehr großer oder unsicherer Umbau). Umfang, Unsicherheit und Prüfaufwand berücksichtigen. Die Startschätzung bleibt erhalten.
+- Wenn `.codex/context-packages.json` vorhanden ist, für jedes neue Umsetzungspaket einen Datensatz mit selbst abgeleitetem Titel (`name`), Startschätzung (`points`), Strategie und Startzeit anlegen. Jeden zugehörigen Durchlauf genau einmal in `subtasks` erfassen, mit kurzem `name`, `kind` (`implementation`, `feedback` oder `handoff`), `sessionId`, `turnId` und gemessenen `workSeconds`. Das Dashboard summiert die Teilaufgaben und verknüpft die Token-Zähler aus dem Hook.
+- Feedback, Nachbesserungen und Übergaben zur selben Aufgabe dem bestehenden Paket zuordnen. Titel und Startschätzung beibehalten. Bei offener Arbeit `completedAt` auf `null` setzen und beim Abschluss der Umsetzung den Zeitstempel eintragen. Eine ausdrückliche Abnahme separat in `acceptedAt` erfassen.
+- Zusammengehörige Pakete über das optionale Feld `epic` gruppieren. Bei eindeutigem Bezug den vorhandenen Epic-Namen wiederverwenden.
+- Eigenständige Pakete in einem frischen Chat bearbeiten. Bei längeren Paketen am geprüften Zwischenstand früh einen Wechsel vorschlagen, sobald eine kurze Übergabe reicht. Für eine angeforderte Übergabe `$resume-work` verwenden.
 
