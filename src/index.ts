@@ -31,3 +31,5 @@ export type {MotionPlacement,MotionPositionOptions} from './position.js';
 export {captureMotionLayout,animateMotionLayout} from './layout.js';
 export {bindScrollMotion} from './scroll.js';
 export type {ScrollMotionOptions} from './scroll.js';
+export {createPresenceMotion} from './presence.js';
+export type {PresenceMotion,PresenceMotionOptions} from './presence.js';

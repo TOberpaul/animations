@@ -6,7 +6,7 @@ The read-only MDK MCP server gives coding assistants access to the library guide
 
 Connect a client that supports Streamable HTTP to the public endpoint. It requires no API key, sign-in or local checkout.
 
-In Kiro, add this entry to your MCP settings:
+In Kiro, place `motion-library` directly under the existing `mcpServers` key. The full file for a single server looks like this:
 
 ```json
 {

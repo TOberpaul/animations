@@ -4,6 +4,13 @@ Every visible part of an entering or exiting view must participate in its transi
 
 Preserve the motion behavior's existing recipe, progression settings, and reduced-motion handling. When a view changes, verify the visible elements in both directions.
 
+# MDK library principles
+
+- Treat a concrete integration issue as a reproduction. Identify the general capability or invariant before changing the library API.
+- Keep MDK independent of frameworks, component libraries, and consumers. Express reusable behavior through platform primitives and explicit contracts. Keep provider-specific selectors, event wiring, and workarounds in the integration or its example.
+- Add a core capability only when it applies to a class of components or layouts. Verify it in materially different configurations and preserve existing defaults unless a change is explicitly requested.
+- Use `$mdk-release` for every MDK npm release. Keep package documentation, public website and hosted MCP aligned with the release.
+
 # Projektwissen und Arbeitspakete
 
 - Vor Änderungen die lokalen `AGENTS.md` entlang der betroffenen Pfade lesen. Dauerhafte Entscheidungen, Invarianten und Prüfschritte im selben Arbeitsschritt im engsten passenden Ordner festhalten.

@@ -1,6 +1,6 @@
 import { createTransition, type Track } from './animation.js';
 import { growthAnchor, growthInsets, localScale, morphGeometry, resizeGeometry } from './geometry.js';
-import { overshootToken, numberToken, token } from './tokens.js';
+import { lengthToken, overshootToken, numberToken, token } from './tokens.js';
 import type { MotionState, Options, Transition } from './lifecycle.js';
 import { fixedContentTracks } from './content-layout.js';
 export interface ResizeOptions extends Options {
@@ -15,8 +15,9 @@ export interface ResizeOptions extends Options {
   overlay?: SVGSVGElement;
 }
 /** Shared physical resizing with a trigger edge or local origin. */
-export function createResizeTransition(options: ResizeOptions, pattern: 'morph' | 'scale'): Transition {
+export function createResizeTransition(options: ResizeOptions, pattern: 'morph' | 'scale', transform = false): Transition {
   const { content, trigger, overlay } = options;
+  if (transform && overlay) throw new Error('Transform Grow does not support an SVG surface overlay.');
   const sameElement = trigger === content;
   if (sameElement && options.initiallyOpen) throw new Error('A same-element morph must initialize in its closed layout.');
   let previous: MotionState = options.initiallyOpen ? 'open' : 'closed';
@@ -40,6 +41,7 @@ export function createResizeTransition(options: ResizeOptions, pattern: 'morph' 
     }
     options.onStateChange?.(state);
   } }, pattern, () => {
+    if (transform) return transformGrowTracks(options);
     const edgeGeometry = !trigger || sameElement ? undefined : morphGeometry(trigger, content);
     const factor = trigger ? undefined : numberToken(content, 'scale-from');
     const collapseAxis = !trigger ? factor === 0 ? options.axis ?? 'both' : undefined : sameElement ? undefined : edgeGeometry!.from.height === 0 ? 'height' : 'width';
@@ -47,7 +49,7 @@ export function createResizeTransition(options: ResizeOptions, pattern: 'morph' 
       left: to.left + to.width * (options.axis === 'height' ? 0 : 1 - factor!) * ax, top: to.top + to.height * (options.axis === 'width' ? 0 : 1 - factor!) * ay,
       width: to.width * (options.axis === 'height' ? 1 : factor!), height: to.height * (options.axis === 'width' ? 1 : factor!)
     });
-    const g = resizeGeometry(content, source, trigger ? edgeGeometry?.origin : token(content, 'scale-origin'), collapseAxis);
+    const g = resizeGeometry(content, source, trigger ? edgeGeometry?.origin : scaleOrigin(content), collapseAxis);
     const style = getComputedStyle(content);
     const base = style.transform;
     const shadow = style.boxShadow;
@@ -118,12 +120,79 @@ export function createResizeTransition(options: ResizeOptions, pattern: 'morph' 
     if (overlay) result.push({ element: overlay, easing: 'linear', frames: frames.map(frame => ({
       ...frame, visibility: 'visible'
     })) });
-    if (options.backdrop) {
-      const native = options.backdrop === 'native';
-      const element = native ? content : options.backdrop as HTMLElement;
-      const pseudoElement = native ? '::backdrop' : undefined;
-      result.push({element,pseudoElement,easing,frames:[{opacity:0},{opacity:getComputedStyle(element,pseudoElement).opacity}]});
-    }
+    addBackdropTrack(result, options, easing);
     return result;
   }, { keepVisibleWhenClosed: sameElement });
+}
+
+function addBackdropTrack(tracks: Track[], {content, backdrop}: ResizeOptions, easing: string) {
+  if (!backdrop) return;
+  const element = backdrop === 'native' ? content : backdrop;
+  const pseudoElement = backdrop === 'native' ? '::backdrop' : undefined;
+  tracks.push({element, pseudoElement, easing, frames: [{opacity: 0}, {opacity: getComputedStyle(element, pseudoElement).opacity}]});
+}
+
+function scaleOrigin(content: HTMLElement): string {
+  const origin = token(content, 'scale-origin');
+  if (!/\b(?:inline|block)-(?:start|end)\b/.test(origin)) return origin;
+  const { direction, writingMode } = getComputedStyle(content);
+  const horizontal = writingMode === 'horizontal-tb';
+  const inline = horizontal ? ['left', 'right'] : writingMode === 'sideways-lr' ? ['bottom', 'top'] : ['top', 'bottom'];
+  if (direction === 'rtl') inline.reverse();
+  const block = horizontal ? ['top', 'bottom'] : writingMode.endsWith('-rl') ? ['right', 'left'] : ['left', 'right'];
+  return origin.replace(/\b(inline|block)-(start|end)\b/g, (_, axis, edge) =>
+    (axis === 'inline' ? inline : block)[edge === 'start' ? 0 : 1]);
+}
+
+function transformGrowTracks(options: ResizeOptions): Track[] {
+  const {content, axis} = options;
+  const style = getComputedStyle(content);
+  const hostOrigin = style.transformOrigin.split(' ').map(parseFloat);
+  const opacity = style.opacity;
+  const property = 'transform-origin';
+  const inlineOrigin = content.style.getPropertyValue(property);
+  const priority = content.style.getPropertyPriority(property);
+  const origin = scaleOrigin(content);
+  if (!CSS.supports(property, origin)) throw new Error('Invalid --motion-scale-origin.');
+  let x: number, y: number;
+  try {
+    content.style.setProperty(property, origin, 'important');
+    [x, y] = style.transformOrigin.split(' ').map(parseFloat);
+  } finally {
+    if (inlineOrigin) content.style.setProperty(property, inlineOrigin, priority);
+    else content.style.removeProperty(property);
+  }
+  const {width, height} = localScale(content, content.getBoundingClientRect());
+  if (!width || !height) throw new Error('Grow content must be measurable before animation.');
+  const dx = x - hostOrigin[0], dy = y - hostOrigin[1];
+  const end = numberToken(content, 'scale-geometry-end');
+  if (end <= 0 || end > 1) throw new Error('Scale geometry end must satisfy 0 < end <= 1.');
+  const requested = token(content, 'easing-scale');
+  const easing = CSS.supports('animation-timing-function', requested) ? requested : token(content, 'easing-standard');
+  const from = numberToken(content, 'scale-from');
+  const frame = (offset: number, sx: number, sy: number): Keyframe => ({
+    offset, easing,
+    // Append a local scale around the motion origin while preserving the host origin.
+    transform: `translate(${dx * (1 - sx)}px, ${dy * (1 - sy)}px) scale(${sx}, ${sy})`,
+  });
+  const frames = [frame(0, axis === 'height' ? 1 : from, axis === 'width' ? 1 : from)];
+  const overshoot = Math.min(overshootToken(content, 'scale-overshoot', width, height), lengthToken(content, 'overshoot-max'));
+  if (overshoot > 0) {
+    const peak = numberToken(content, 'scale-peak-offset');
+    if (peak <= 0 || peak >= end) throw new Error('Scale peak must satisfy 0 < peak < geometry end.');
+    frames.push(frame(peak, axis === 'height' ? 1 : 1 + overshoot / Math.max(Math.abs(x), Math.abs(width - x)),
+      axis === 'width' ? 1 : 1 + overshoot / Math.max(Math.abs(y), Math.abs(height - y))));
+  }
+  frames.push(frame(end, 1, 1));
+  if (end < 1) frames.push(frame(1, 1, 1));
+  const tracks: Track[] = [
+    {element: content, frames, easing: 'linear', composite: 'add'},
+    {element: content, easing: 'linear', frames: [
+      {offset: 0, easing, opacity: numberToken(content, 'scale-opacity')},
+      {offset: end, opacity},
+      ...(end < 1 ? [{offset: 1, opacity}] : []),
+    ]},
+  ];
+  addBackdropTrack(tracks, options, easing);
+  return tracks;
 }

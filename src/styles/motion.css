@@ -72,5 +72,5 @@
   --motion-overshoot-max: .75rem;
 }
 @media (prefers-reduced-motion: reduce) {
-  :root { --motion-duration-morph: 0ms; --motion-duration-slide: 0ms; --motion-duration-scale: 0ms; --motion-duration-backdrop: 0ms; }
+  :root { --motion-duration-morph: 0ms; --motion-duration-slide: 0ms; --motion-duration-scale: 0ms; --motion-duration-backdrop: 0ms; --motion-duration-content: 0ms; --motion-duration-liquid: 0ms; }
 }

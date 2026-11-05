@@ -9,7 +9,7 @@ import {PageHeader} from '../page-header.jsx';
 
 <section id="setup">
   <h2>Connect the MCP server</h2>
-  <p>In Kiro, add this entry to your MCP configuration. In other clients that support remote MCP, use the same URL with the Streamable HTTP transport.</p>
+  <p>In Kiro, place <code>motion-library</code> directly under the existing <code>mcpServers</code> key. The example below shows a complete file with one server. In other clients that support remote MCP, use the same URL with the Streamable HTTP transport.</p>
   <pre><code>{JSON.stringify({mcpServers:{'motion-library':{url:'https://emjicqiqcpmkindocsnt.supabase.co/functions/v1/mcp'}}},null,2)}</code></pre>
   <p>The endpoint is public and requires no sign-in, API key or local checkout. Install <code>@tobiasoberpaul/mdk</code> in your project when you use the animation API in your code.</p>
   <p>For a client that only supports stdio, follow the <a href="https://github.com/TOberpaul/animations/blob/main/docs/AI_INTEGRATION.md#local-stdio">local setup</a>.</p>

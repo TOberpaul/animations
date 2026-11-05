@@ -50,6 +50,175 @@ for (const name of ['menu','drawer','dialog']) {
   });
 }
 
+test('transform Grow keeps a right-positioned surface anchored through overshoot and reversal', async ({page}) => {
+  const result = await page.evaluate(async () => {
+    const {createGrowTransition} = await import('/dist/index.js');
+    const surface = document.createElement('div');
+    surface.style.cssText = 'position:fixed;inset-inline-end:24px;top:10px;width:320px;height:120px;transform:translateX(12px);transform-origin:left bottom;--motion-scale-origin:right top;--motion-scale-from:0;--motion-duration-scale:1000ms';
+    const label = surface.appendChild(document.createElement('span'));
+    label.textContent = 'Popover';
+    document.body.append(surface);
+    const base = surface.getBoundingClientRect();
+    const grow = createGrowTransition({content:surface,reveal:label,resize:'transform'});
+    grow.open();
+    const edgeError = [];
+    let largestWidth = 0;
+    for (const progress of [0.01, 0.15, 0.4, 0.6, 0.8, 0.99]) {
+      grow.seek(progress);
+      const rect = surface.getBoundingClientRect();
+      edgeError.push(Math.abs(rect.right - base.right), Math.abs(rect.top - base.top));
+      largestWidth = Math.max(largestWidth, rect.width);
+    }
+    const tracks = surface.getAnimations();
+    const onlyVisual = tracks.every(animation => animation.effect.getKeyframes().every(frame =>
+      !['width','height','inset','left','top','transformOrigin'].some(key => key in frame)));
+    const reveal = label.getAnimations().length > 0;
+    grow.close();
+    const reversed = tracks.every(animation => surface.getAnimations().includes(animation) && animation.playbackRate === -1);
+    grow.destroy();
+    const restored = surface.style.transform === 'translateX(12px)' && surface.style.transformOrigin === 'left bottom' &&
+      surface.getAnimations().length === 0 && surface.getBoundingClientRect().right === base.right;
+
+    surface.style.setProperty('--motion-overshoot-max','0px');
+    const noOvershoot = createGrowTransition({content:surface,resize:'transform'});
+    noOvershoot.open();
+    const offsets = surface.getAnimations()[0].effect.getKeyframes().map(frame => frame.offset);
+    noOvershoot.destroy();
+    const getMetrics = (resize) => {
+      const transition = createGrowTransition({content:surface,resize});
+      transition.open();
+      const frames = surface.getAnimations()[0].effect.getKeyframes();
+      transition.destroy();
+      return frames;
+    };
+    return {error:Math.max(...edgeError), overshoot:largestWidth > base.width,
+      onlyVisual,reveal,reversed,restored,offsets,
+      sameDefault:JSON.stringify(getMetrics())===JSON.stringify(getMetrics('metrics'))};
+  });
+  expect(result.error).toBeLessThan(0.05);
+  expect(result).toMatchObject({overshoot:true,onlyVisual:true,reveal:true,reversed:true,restored:true,sameDefault:true});
+  expect(result.offsets).toHaveLength(3);
+});
+
+test('logical Grow follows inline-end and block-start in RTL and vertical layouts', async ({page}) => {
+  const errors = await page.evaluate(async () => {
+    const {createGrowTransition} = await import('/dist/index.js');
+    return [['horizontal-tb','rtl','left','top'],['vertical-rl','ltr','right','bottom'],
+      ['sideways-lr','ltr','left','top']].map(([mode,direction,edgeA,edgeB]) => {
+      const surface=document.createElement('div');
+      surface.style.cssText='position:fixed;inset-inline-end:24px;inset-block-start:12px;width:320px;height:120px;--motion-scale-origin:inline-end block-start;--motion-scale-from:0;--motion-duration-scale:1000ms';
+      surface.style.writingMode=mode;
+      surface.style.direction=direction;
+      document.body.append(surface);
+      const base=surface.getBoundingClientRect();
+      const grow=createGrowTransition({content:surface,resize:'transform'});
+      grow.seek(.2);
+      const current=surface.getBoundingClientRect();
+      grow.destroy();
+      surface.remove();
+      return Math.max(Math.abs(current[edgeA]-base[edgeA]), Math.abs(current[edgeB]-base[edgeB]));
+    });
+  });
+  expect(Math.max(...errors)).toBeLessThan(.05);
+});
+
+test('CSS presence holds a reversible exit and restores the host attribute', async ({page}) => {
+  await page.addStyleTag({content:'.css-presence { visibility: hidden } .css-presence.requested, .css-presence[data-motion-state=closing] { visibility: visible }'});
+  const result = await page.evaluate(async () => {
+    const {createGrowTransition,createPresenceMotion} = await import('/dist/index.js');
+    const surface=document.createElement('div');
+    surface.className='css-presence';
+    surface.setAttribute('data-motion-state','host-value');
+    surface.style.cssText='position:fixed;width:200px;height:100px;--motion-duration-scale:1000ms';
+    document.body.append(surface);
+    const motion=createPresenceMotion({stateTarget:surface,
+      createTransition:lifecycle=>createGrowTransition({content:surface,resize:'transform',...lifecycle})});
+    surface.classList.add('requested');
+    motion.setOpen(true);
+    const track=surface.getAnimations()[0];
+    surface.getAnimations().forEach(animation=>{animation.pause();animation.currentTime=400;});
+    surface.classList.remove('requested');
+    motion.setOpen(false);
+    const held=getComputedStyle(surface).visibility==='visible' && surface.dataset.motionState==='closing';
+    surface.classList.add('requested');
+    motion.setOpen(true);
+    const reversed=surface.getAnimations()[0]===track && track.playbackRate===1;
+    surface.classList.remove('requested');
+    motion.setOpen(false);
+    surface.getAnimations().forEach(animation=>{animation.currentTime=0;animation.finish();});
+    await new Promise(resolve=>setTimeout(resolve,30));
+    const closed=getComputedStyle(surface).visibility==='hidden' && surface.dataset.motionState==='closed';
+    motion.destroy();
+    return {held,reversed,closed,restored:surface.dataset.motionState==='host-value'};
+  });
+  expect(result).toEqual({held:true,reversed:true,closed:true,restored:true});
+});
+
+test('metrics Grow restores inline layout and settles without WAAPI', async ({page}) => {
+  const result=await page.evaluate(async()=>{
+    const {createGrowTransition,animateMotionLayout}=await import('/dist/index.js');
+    const surface=document.createElement('div');
+    surface.style.cssText='position:fixed;width:200px;height:100px;min-width:80px;padding:8px;overflow:auto;--motion-scale-from:0;--motion-duration-scale:1000ms';
+    document.body.append(surface);
+    const snapshot=()=>[...surface.style].sort().map(name=>[name,surface.style.getPropertyValue(name),surface.style.getPropertyPriority(name)]);
+    const before=snapshot();
+    const motion=createGrowTransition({content:surface});
+    motion.seek(.3);
+    motion.destroy();
+    const restored=JSON.stringify(snapshot())===JSON.stringify(before) && surface.getAnimations().length===0;
+    Object.defineProperty(surface,'animate',{value:undefined});
+    const fallback=createGrowTransition({content:surface});
+    fallback.open();
+    const opened=fallback.state==='open';
+    fallback.close();
+    const closed=fallback.state==='closed';
+    fallback.destroy();
+    animateMotionLayout(surface,{width:'10px'})();
+    return {restored,opened,closed};
+  });
+  expect(result).toEqual({restored:true,opened:true,closed:true});
+});
+
+test('presence adapter reverses while held and restores styles for host-owned entry', async ({page}) => {
+  const result = await page.evaluate(async () => {
+    const {createGrowTransition, createPresenceMotion} = await import('/dist/index.js');
+    const surface = document.createElement('section');
+    surface.style.cssText = 'position:fixed;width:180px;height:100px;opacity:.8;--motion-duration-scale:1000ms';
+    document.body.append(surface);
+    surface.hidden = true;
+    const createTransition = lifecycle => createGrowTransition({content: surface, ...lifecycle});
+    const managed = createPresenceMotion({createTransition, setPresent: present => {surface.hidden = !present;}});
+    managed.setOpen(true);
+    const track = surface.getAnimations()[0];
+    track.pause();
+    track.currentTime = 400;
+    managed.setOpen(false);
+    const held = !surface.hidden && managed.state === 'closing' && track.playbackRate === -1;
+    managed.setOpen(true);
+    const reversed = surface.getAnimations()[0] === track && track.playbackRate === 1;
+    managed.setOpen(false);
+    surface.getAnimations().forEach(animation => { animation.currentTime = 0; animation.finish(); });
+    await new Promise(resolve => setTimeout(resolve, 30));
+    const closed = surface.hidden && managed.state === 'closed';
+    managed.destroy();
+
+    const entry = createPresenceMotion({createTransition});
+    surface.hidden = false;
+    entry.setOpen(true);
+    const firstEntry = surface.getAnimations()[0];
+    surface.hidden = true;
+    entry.setOpen(false);
+    const released = firstEntry.playState === 'idle' && surface.style.opacity === '0.8' && surface.hidden;
+    surface.hidden = false;
+    entry.setOpen(true);
+    const replayed = surface.getAnimations().some(animation => animation !== firstEntry);
+    entry.destroy();
+    surface.remove();
+    return {held, reversed, closed, released, replayed};
+  });
+  expect(result).toEqual({held:true, reversed:true, closed:true, released:true, replayed:true});
+});
+
 test('rapid repeated interactions settle on the latest target', async ({page}) => {
   await page.locator('#stress').click();
   await expect(page.locator('#menu-state')).toHaveText('open');

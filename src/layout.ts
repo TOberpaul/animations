@@ -9,6 +9,7 @@ export function captureMotionLayout(element:HTMLElement):Keyframe{
 /** Animate a component-owned CSS layout change from its captured visual state. */
 export function animateMotionLayout(element:HTMLElement,from:Keyframe):()=>void{
  active.get(element)?.cancel();
+ if(typeof element.animate!=='function')return()=>{};
  const to=captureMotionLayout(element);
  if(element.ownerDocument.defaultView!.matchMedia('(prefers-reduced-motion: reduce)').matches||duration(element,'morph')===0)return()=>{};
  const animation=element.animate([from,to],{duration:duration(element,'morph'),easing:token(element,'easing-standard')});

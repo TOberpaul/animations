@@ -23,14 +23,14 @@ content, unless reflow is intentional (the three-column layout).
 The package name is `@tobiasoberpaul/mdk`.
 
 ```ts
-import { createScaleTransition } from '@tobiasoberpaul/mdk';
+import { createGrowTransition } from '@tobiasoberpaul/mdk';
 import '@tobiasoberpaul/mdk/motion.css';
 
 const surface = document.querySelector<HTMLElement>('#dialog')!;
 const trigger = document.querySelector<HTMLButtonElement>('#open')!;
 surface.inert = true;
 
-const transition = createScaleTransition({
+const transition = createGrowTransition({
   content: surface,
   reveal: [...surface.children].filter((node): node is HTMLElement => node instanceof HTMLElement),
   onStateChange(state) {
@@ -77,12 +77,74 @@ Use your design system's real dialog, drawer, popover, toast or card instead of
 this minimal surface. Native dialogs require their component integration to
 call `showModal()` / close at the appropriate lifecycle points.
 
+## Animate an existing component
+
+Use `createPresenceMotion` when a popover, drawer or menu already owns its
+interaction. Forward its existing open and close signals to `setOpen`. The
+adapter uses the selected MDK controller for animation. The integration keeps
+its existing positioning, focus, keyboard and dismissal behavior.
+
+```ts
+import { createGrowTransition, createPresenceMotion } from '@tobiasoberpaul/mdk';
+import '@tobiasoberpaul/mdk/motion.css';
+
+const motion = createPresenceMotion({
+  initiallyOpen: !surface.hidden,
+  createTransition: lifecycle => createGrowTransition({ content: surface, ...lifecycle }),
+  setPresent: present => { surface.hidden = !present; },
+});
+
+// Forward the component's existing open/close requests to motion.setOpen(open).
+// On cleanup, unsubscribe from the component and call motion.destroy().
+```
+
+With `setPresent`, the adapter shows the surface synchronously before measurement
+and hides it after the exit settles. Use the component's supported presence
+mechanism in this callback. The same surface must remain mounted through exit.
+Keep requested open state separate from visual presence so a new open request
+can reverse an in-progress exit.
+
+If the host can hold presence through CSS, pass `stateTarget: surface`. The
+adapter reflects `opening`, `open`, `closing` and `closed` in
+`data-motion-state` and restores any previous value on teardown. Let the
+host's CSS keep the surface rendered at its normal open opacity during
+`closing`, so the animation can measure and fade it.
+Forward the host's requested state, independently of the held visibility,
+so reopening can reverse the exit. Keep focus and interaction rules in the host.
+
+If the host hides itself immediately, omit both `setPresent` and `stateTarget`. Call `setOpen(true)`
+after the host has made its surface visible and positioned it, then call
+`setOpen(false)` when it hides. This mode plays entry and releases the effect
+on close. It requires a reliable signal from the host integration. Disable any
+competing host animation on the same surface.
+
+## Grow on a host-positioned surface
+
+For a popover positioned by its host, opt into transform-based local Grow:
+
+```ts
+const motion = createGrowTransition({ content: surface, resize: 'transform' });
+```
+
+Use `--motion-scale-origin: inline-end block-start` for logical placement in
+either text direction or writing mode. Use `right top` for a physical anchor.
+Omit `trigger` when the component owns positioning and you want local growth.
+Pass `trigger` only to grow from the trigger's edge. Use
+`--motion-scale-from` for its starting scale. MDK adds the animation to the
+host transform and leaves layout dimensions and insets alone. The whole surface
+scales visually, including its border and content. Set `--motion-overshoot-max: 0`
+to turn off overshoot. This mode works with `createPresenceMotion`.
+
+The default `resize: 'metrics'` still resizes the actual surface. Grow with a
+`trigger` continues to use trigger-edge geometry. The local transform mode
+supports HTML surfaces without an SVG overlay.
+
 ## Public behavior factories
 
 | Factory | Behavior | Required additions to shared options |
 | --- | --- | --- |
-| `createGrowTransition` | Grow from a configured origin or trigger edge | Optional `trigger`, `axis`, `backdrop` |
-| `createScaleTransition` | Origin-based Grow compatibility factory | Optional `axis`, `backdrop` |
+| `createGrowTransition` | Grow from a configured origin or trigger edge | Optional `trigger`, `axis`, `backdrop`, `resize` |
+| `createScaleTransition` | Deprecated alias for local Grow | Optional `axis`, `backdrop` |
 | `createExtractTransition` | Extract a new surface while retaining the trigger | `trigger` |
 | `createMorphTransition` | Transform the trigger into the target surface | `trigger` |
 | `createLiquidMorphTransition` | Source volume → encompassing surface → target | `trigger`; optional `replaceTrigger` |
@@ -99,7 +161,7 @@ opacity and blur. Explicit `items` for Content must not be nested.
 
 ### Grow
 
-`createScaleTransition` preserves the component's base transform and reads its
+`createGrowTransition` preserves the component's base transform and reads its
 origin from `--motion-scale-origin`. The library default is `.92` for
 `--motion-scale-from`; the demos set `0` for fully collapsed opening.
 
@@ -205,7 +267,7 @@ const transition = createMotion({
 
 An explicit `data-motion` takes precedence over classes. Without it, use exactly
 one matching class. Declarative `morph` selects the replacing Morph factory directly.
-The old `liquid` / `motion-liquid` spelling remains a compatibility path; its
+The deprecated `liquid` / `motion-liquid` spelling remains a compatibility path; its
 `data-motion-replace-trigger` flag retains its original meaning. Recreate the controller to change behavior after
 initialization. Change CSS tokens for per-trip visual parameters.
 
@@ -302,7 +364,7 @@ can be overridden locally on a surface or globally.
 | --- | --- |
 | `--motion-duration` | `300ms`; aliases for morph, scale, liquid, slide, content, backdrop |
 | `--motion-easing-standard` | `cubic-bezier(.42, 0, .58, 1)`; symmetric open/close |
-| `--motion-overshoot-min` | `15%` of the surface's shorter side |
+| `--motion-overshoot-ratio` | `15%` of the surface's shorter side by default. When unset, reads the legacy `--motion-overshoot-min` token. |
 | `--motion-overshoot-max` | `.75rem` cap shared by trigger and target; morph/scale alias this |
 | `--motion-content-progressive` | `1` (enabled by default); set to `0` to disable |
 | `--motion-content-stagger` | `.08`, fraction of base duration for Content |

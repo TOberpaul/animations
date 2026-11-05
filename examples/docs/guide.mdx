@@ -1,13 +1,14 @@
 import {PageHeader} from '../page-header.jsx';
 import {Button} from '../shadcn/components/ui/button';
 import {motionBehaviors} from '../../dist/index.js';
+import {version} from '../../package.json';
 
 <PageHeader title="Documentation">Framework-independent visual transitions built with TypeScript, CSS tokens and the Web Animations API.</PageHeader>
 
 <section id="getting-started">
 
 <h2>Getting started</h2>
- <p>Install MDK from npm in your project.</p>
+ <p>Install MDK from npm in your project. This guide covers MDK {version}.</p>
 
 
 ```sh
@@ -69,6 +70,24 @@ function dispose() {
 <h2>Behaviors</h2><div className="docs-table"><table><thead><tr><th>HTML name</th><th>Factory</th><th>Behavior</th></tr></thead><tbody>{[
  ['grow','createGrowTransition','Grow from a local anchor or a trigger edge.'],['extract','createExtractTransition','Expand a copy of the trigger into the target; retain the original trigger.'],['morph','createMorphTransition','Transform the trigger into the target; the integration hides the original while open.'],['slide','createSlideTransition','Translate from an edge or move between navigation levels.'],['fade','createContentTransition','Reveal content with fade, blur and a subtle lift.'],
  ].filter(([name])=>motionBehaviors[name]).map(row=><tr key={row[0]}>{row.map(cell=><td key={cell}>{cell}</td>)}</tr>)}</tbody></table></div><p>Grow, Extract and Morph keep the inner content stationary and reveal it with fade and blur. All controllers expose <code>open()</code>, <code>close()</code>, <code>toggle()</code>, <code>destroy()</code>, <code>state</code> and <code>isOpen</code>. Reversing an active transition reuses its timeline.</p>
+
+<h3 className="docs-subheading">Grow a surface positioned by its component</h3>
+<p>Use transform Grow without a trigger when the host owns placement. Logical origins follow text direction and writing mode. Forward the host’s open and close requests to the presence adapter.</p>
+
+```js
+import { createGrowTransition, createPresenceMotion } from '@tobiasoberpaul/mdk';
+
+const motion = createPresenceMotion({
+  stateTarget: surface,
+  createTransition: lifecycle =>
+    createGrowTransition({ content: surface, resize: 'transform', ...lifecycle }),
+});
+// Set --motion-scale-origin: inline-end block-start on the surface.
+// Forward open and close requests to motion.setOpen(open).
+// Unsubscribe and call motion.destroy() when the component unmounts.
+```
+
+<p>With <code>stateTarget</code>, keep the surface rendered at its normal open opacity while <code>data-motion-state="closing"</code>. Use <code>setPresent</code> when the host offers imperative presence control. For a host that hides immediately, omit both options and call <code>setOpen(true)</code> after the surface becomes visible.</p>
 
 </section>
 
@@ -156,7 +175,7 @@ const stop = observeMotion([{element: block, transition}], {
 :root {
   --motion-duration: 300ms;
   --motion-easing-standard: cubic-bezier(.42, 0, .58, 1);
-  --motion-overshoot-min: 15%;
+  --motion-overshoot-ratio: 15%;
   --motion-overshoot-max: .75rem;
   --motion-scale-from: 0;
   --motion-scale-origin: center center;
