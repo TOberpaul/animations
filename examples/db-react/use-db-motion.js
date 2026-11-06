@@ -42,7 +42,10 @@ export function useDbMotion(name,kind,extract=false,grow=false,replaceTrigger=fa
       root.dataset.motionState=next;
       // Generate the notification's ::before box before native pseudo effects
       // are created; a deferred React update would attach them while hidden.
-      if(kind==='notification')flushSync(()=>setState(next));else setState(next);
+      if(kind==='notification'){
+        root.toggleAttribute('data-motion-viewport-overlay',next!=='closed');
+        flushSync(()=>setState(next));
+      }else setState(next);
       const visible=next!=='closed';
       if(replaceTrigger&&trigger.current){trigger.current.style.visibility=visible?'hidden':'';trigger.current.inert=visible;}
       content.inert=!visible;
@@ -86,6 +89,7 @@ export function useDbMotion(name,kind,extract=false,grow=false,replaceTrigger=fa
     }
     const motion={get state(){return priming?'opening':raw.state;},get isOpen(){return desired;},open,close,toggle(){desired?close():open();},destroy(){
       if(disposed)return;disposed=true;priming=false;cancelAnimationFrame(frame);timers.current.forEach(clearTimeout);positionHold?.cancel();raw.destroy();
+      if(kind==='notification')root.removeAttribute('data-motion-viewport-overlay');
       if(replaceTrigger&&trigger.current){trigger.current.style.visibility='';trigger.current.inert=false;}
       if(nativeDialog){syncDialogOpenState(root,false,false);settleDbEffects(root);}
     }};

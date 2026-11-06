@@ -13,9 +13,18 @@ export function connectPlayground(entries) {
     }
   };
   window.motionPlayground={entries,apply,previewing:false};
+  // A viewport overlay inside the frame can only cover the shell when the frame itself is raised.
+  const frame=window.frameElement;
+  const syncOverlay=()=>frame?.toggleAttribute('data-viewport-overlay',
+    Boolean(document.querySelector('dialog:modal, [data-motion-backdrop][data-motion-active], [data-motion-viewport-overlay]')));
+  const overlayObserver=new MutationObserver(syncOverlay);
+  if(frame){
+    overlayObserver.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['open','data-motion-active','data-motion-viewport-overlay']});
+    syncOverlay();
+  }
   const interact=event=>{if(event.isTrusted){window.motionPlayground.previewing=false;parent.dispatchEvent(new Event('motion-playground-interaction'));}};
   document.addEventListener('pointerdown',interact,true);
   document.addEventListener('keydown',interact,true);
   parent.dispatchEvent(new Event('motion-playground-ready'));
-  return ()=>{document.removeEventListener('pointerdown',interact,true);document.removeEventListener('keydown',interact,true);delete window.motionPlayground;};
+  return ()=>{overlayObserver.disconnect();frame?.removeAttribute('data-viewport-overlay');document.removeEventListener('pointerdown',interact,true);document.removeEventListener('keydown',interact,true);delete window.motionPlayground;};
 }

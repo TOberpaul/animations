@@ -25,7 +25,7 @@ function Range({id,label,value,min=100,max=2000,step=20,unit=' ms',disabled,onCh
  return <div className="grid gap-3"><div className="flex items-center justify-between gap-2"><Label id={`${id}-label`} className="text-xs">{label}</Label><output className="font-mono text-[11px] text-muted-foreground" id={`${id}-output`}>{value}{unit}</output></div><Slider id={id} className={disabled?'opacity-50':undefined} aria-labelledby={`${id}-label`} value={[value]} min={min} max={max} step={step} disabled={disabled} onValueChange={values=>onChange(values[0])} onValueCommit={onCommit} /></div>;
 }
 function Panel({title,children,className=''}){
- return <Card className={`shadow-none ${className}`}><CardHeader className="p-4 pb-4"><CardTitle className="text-sm">{title}</CardTitle></CardHeader><CardContent className="grid gap-5 p-4 pt-0">{children}</CardContent></Card>;
+ return <Card data-motion-content-group="" className={`shadow-none ${className}`}><CardHeader className="p-4 pb-4"><CardTitle className="text-sm">{title}</CardTitle></CardHeader><CardContent className="grid gap-5 p-4 pt-0">{children}</CardContent></Card>;
 }
 function Playground(){
  const [siteRoot]=useState(()=>new URL(document.querySelector('meta[name="mdk-root"]')?.content??'../',location.href));
@@ -114,7 +114,18 @@ function Playground(){
  },[view,provider,config.reduced,systemReduced]);
  const [settingsVisible,setSettingsVisible]=useState(false);
  const settingsElement=useRef(null),settingsMotion=useRef(null),settingsTrigger=useRef(null);
- useLayoutEffect(()=>{const content=settingsElement.current;const transition=createGrowTransition({content,anchor:{x:1,y:0},reveal:[...content.children],onStateChange(state){if(state==='destroyed')return;content.hidden=state==='closed';content.inert=state==='closed'||state==='closing';}});settingsMotion.current=transition;return()=>transition.destroy();},[]);
+ useLayoutEffect(()=>{
+  const content=settingsElement.current;
+  const reveal=[];
+  const transition=createGrowTransition({content,axis:'width',reveal,onStateChange(state){
+   if(state==='destroyed')return;
+   if(state==='opening'||state==='closing')reveal.splice(0,reveal.length,...content.children);
+   content.hidden=state==='closed';
+   content.inert=state==='closed'||state==='closing';
+  }});
+  settingsMotion.current=transition;
+  return()=>transition.destroy();
+ },[]);
  useLayoutEffect(()=>{if(settingsVisible)settingsMotion.current?.open();else settingsMotion.current?.close();},[settingsVisible]);
  const reduced=config.reduced||systemReduced;
  return <><header ref={headerRef} data-floating={headerFloating} className="shell-header border-b bg-background"><div className="shell-title"><a className="shell-home text-base font-semibold tracking-tight" aria-label={productName} {...linkTo('home')}><span className="shell-home-full">{productName}</span><span className="shell-home-short">{productShortName}</span></a><nav aria-label="Playground view" className="shell-view-group">{[['docs','Documentation'],['examples','Examples'],['code','Code playground']].map(([key,label])=><Button key={key} asChild variant={(view===key||(key==='docs'&&view==='ai'))?'secondary':'ghost'}><a aria-current={view===key?'page':undefined} {...linkTo(key)}>{label}</a></Button>)}</nav></div><div className="shell-switches"><div className="shell-code-actions" ref={setCodeHeaderActions}/><div className="shell-icon-actions"><HeaderHint text={config.theme==='dark'?'Switch to light mode':'Switch to dark mode'}><Button type="button" variant="ghost" size="icon" aria-label="Dark mode" aria-pressed={config.theme==="dark"} onClick={()=>update("theme",config.theme==="dark"?"light":"dark",true)}>{config.theme==="dark"?<Moon aria-hidden="true"/>:<Sun aria-hidden="true"/>}</Button></HeaderHint><HeaderHint text={systemReduced?'Reduced motion is enabled by your system':reduced?'Disable reduced motion':'Enable reduced motion'}><Button type="button" variant={reduced?'secondary':'ghost'} size="icon" aria-label="Reduced motion" aria-pressed={reduced} aria-disabled={systemReduced} onClick={()=>{if(!systemReduced)update('reduced',!config.reduced,true);}}><Accessibility aria-hidden="true"/></Button></HeaderHint><HeaderHint text={settingsVisible?"Hide settings":"Show settings"}><Button ref={settingsTrigger} type="button" variant="ghost" size="icon" aria-label="Motion settings" aria-controls="motion-settings" aria-expanded={settingsVisible} onClick={()=>setSettingsVisible(value=>!value)}><PanelRight aria-hidden="true"/></Button></HeaderHint></div></div></header>

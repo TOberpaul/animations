@@ -41,6 +41,7 @@ export function useMotionOverlay(name, kind, extract=false,grow=false,replaceTri
       // Keep the overlay transparent until entrance preparation and after the
       // exit effects are released, while Radix still owns the mounted portal.
       backdrop.current?.toggleAttribute('data-motion-active', next !== 'closed');
+      if(kind==='notification')node.toggleAttribute('data-motion-viewport-overlay', next!=='closed');
       if(replaceTrigger&&trigger.current){trigger.current.style.visibility=next==='closed'?'':'hidden';trigger.current.inert=next!=='closed';}
       setState(next);
       if (next === 'closed' && !desired.current) setPresent(false);
@@ -66,6 +67,7 @@ export function useMotionOverlay(name, kind, extract=false,grow=false,replaceTri
       disposed = true; cancelAnimationFrame(preparation.current);
       releasePlacement();
       backdrop.current?.removeAttribute('data-motion-active');
+      if(kind==='notification')node.removeAttribute('data-motion-viewport-overlay');
       if(replaceTrigger&&trigger.current){trigger.current.style.visibility='';trigger.current.inert=false;}
       timers.current.forEach(clearTimeout); transition.destroy(); controller.current = null;
       delete window.shadcnMotionDemo[name];
