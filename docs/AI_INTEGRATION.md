@@ -1,4 +1,4 @@
-# AI integration
+# Motion Development Kit (MDK) AI integration
 
 The read-only MDK MCP server gives coding assistants access to the library guide, tokens, API and integration examples.
 
@@ -88,7 +88,7 @@ Rebuild the bundle before each deployment to keep the served reference in sync w
 
 The hosted endpoint serves the reference bundled at deployment. The local adapter reads the guide, API declarations, tokens and behavior definitions from the checkout and its build output.
 
-Example request to your AI: “Use the Motion Library MCP to add an interruptible Grow transition to this existing popover. Preserve its accessibility and positioning.”
+Example request to your AI: “Use the MDK MCP to add an interruptible Grow transition to this existing popover. Preserve its accessibility and positioning.”
 
 ## Compatibility and scope
 

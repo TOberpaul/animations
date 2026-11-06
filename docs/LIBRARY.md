@@ -1,4 +1,4 @@
-# UI Motion Library — integration guide
+# Motion Development Kit (MDK) integration guide
 
 ## Ownership and architecture
 

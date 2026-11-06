@@ -34,4 +34,4 @@ createServer(async (req,res) => {
     res.setHeader('Content-Length',body.length);res.end(body);
   }
   catch { res.writeHead(404).end('Not found'); }
-}).listen(4173,'127.0.0.1',() => console.log('MDK Motion Library: http://127.0.0.1:4173/'));
+}).listen(4173,'127.0.0.1',() => console.log('Motion Development Kit: http://127.0.0.1:4173/'));

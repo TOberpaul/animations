@@ -1,4 +1,4 @@
-# MDK · UI Motion Library
+# Motion Development Kit (MDK)
 
 MDK is a framework-independent TypeScript library for reversible UI transitions. It uses the Web Animations API and CSS custom properties.
 

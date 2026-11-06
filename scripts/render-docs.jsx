@@ -4,13 +4,13 @@ import LibraryGuide from '../examples/docs/guide.mdx';
 import HomeCopy from '../examples/docs/home.mdx';
 import ExamplesCopy from '../examples/docs/examples.mdx';
 import PlaygroundCopy from '../examples/docs/playground.mdx';
-import { pagePath, pages } from '../examples/routes.js';
+import { pagePath, pages, pageTitle, productShortName } from '../examples/routes.js';
 
 export function renderPage(view, provider) {
   const path = pagePath(view, provider);
   const base = '../'.repeat(path.split('/').filter(Boolean).length) || './';
   const href = (key, nextProvider) => base + pagePath(key, nextProvider);
-  const title = view === 'home' ? pages.home.title : pages[view].title + ' · MDK Motion Library';
+  const title = pageTitle(view);
   const actions = <p><a href={href('docs')}>Get started</a> · <a href={href('examples')}>Explore examples</a></p>;
   const providers = <ul>
     <li><a href={href('examples', 'shadcn')}>shadcn/ui examples</a></li>
@@ -44,7 +44,7 @@ export function renderPage(view, provider) {
             <header className="mb-8">
               <nav aria-label="MDK pages" className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
                 {Object.entries(pages).map(([key, page]) =>
-                  <a key={key} href={href(key, provider)} aria-current={key === view ? 'page' : undefined}>{page.title}</a>,
+                  <a key={key} href={href(key, provider)} aria-label={key === "home" ? page.title : undefined} aria-current={key === view ? 'page' : undefined}>{key === 'home' ? <><span className="shell-home-full">{page.title}</span><span className="shell-home-short">{productShortName}</span></> : page.title}</a>,
                 )}
                 <a href={base + 'docs/LIBRARY.md'}>Markdown guide</a>
               </nav>

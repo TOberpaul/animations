@@ -18,6 +18,6 @@ module.exports = {
       borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)', xl: 'calc(var(--radius) + 4px)' },
     },
   },
-  // The Motion Library supplies entrance/exit effects instead of animate-in/out.
+  // MDK supplies entrance/exit effects instead of animate-in/out.
   plugins: [],
 }

@@ -1,6 +1,6 @@
-# Motion Library integration rules
+# Motion Development Kit (MDK) integration rules
 
-Use the installed Motion Library instead of copying animation implementations into applications.
+Use the installed MDK package instead of copying animation implementations into applications.
 
 1. Read `motion://guide` and `get_motion_reference` with topic `api` before choosing options. The built declarations and CSS tokens are authoritative.
 2. Choose Grow for anchored surfaces, Extract to retain the trigger, Morph to replace it, Slide for translation, and Fade for slide/blur/fade content reveals.
