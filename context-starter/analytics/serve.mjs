@@ -6,21 +6,37 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import postcss from 'postcss';
 import tailwind from 'tailwindcss';
-import { readAnalytics } from './data.mjs';
 
 const app = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const project = resolve(args.find((arg) => arg !== '--codex-history') ?? process.env.INIT_CWD ?? process.cwd());
 const history = args.includes('--codex-history')
   ? join(process.env.CODEX_HOME || join(homedir(), '.codex'), 'sessions') : undefined;
-const theme = {
-  content: [join(app, 'app.jsx'), join(app, 'components/**/*.jsx')],
-  theme: { extend: { colors: {
-    card: '#141820', 'card-foreground': '#f4f6fb', background: '#10131a',
-    input: '#363e4d', accent: '#242b38', 'accent-foreground': '#fff', ring: '#a4bcff',
-  } } },
-};
-let assets, revision;
+let assets, assetRevision, dataRevision, readAnalytics;
+const revision = () => JSON.stringify([assetRevision, dataRevision]);
+const dataBuild = await context({
+  entryPoints: [join(app, 'data.mjs')], bundle: true, write: false,
+  platform: 'node', format: 'esm',
+  plugins: [{
+    name: 'analytics-data-live-reload',
+    setup(builder) {
+      builder.onEnd(async ({ errors, outputFiles }) => {
+        if (errors.length) return;
+        const [output] = outputFiles;
+        if (output.hash === dataRevision) return;
+        try {
+          const moduleUrl = 'data:text/javascript;base64,' + Buffer.from(output.contents).toString('base64');
+          const next = await import(moduleUrl);
+          if (typeof next.readAnalytics !== 'function') throw new Error('Missing readAnalytics export.');
+          readAnalytics = next.readAnalytics;
+          dataRevision = output.hash;
+        } catch (error) {
+          return { errors: [{ text: error.message }] };
+        }
+      });
+    },
+  }],
+});
 const build = await context({
   entryPoints: [join(app, 'app.jsx'), join(app, 'styles.css')],
   outdir: join(app, 'build'), bundle: true, write: false, jsx: 'automatic',
@@ -30,14 +46,14 @@ const build = await context({
     setup(builder) {
       builder.onLoad({ filter: /styles\.css$/ }, async ({ path }) => {
         const source = await readFile(path, 'utf8');
-        const { css } = await postcss([tailwind(theme)]).process(source, { from: path });
-        return { contents: css, loader: 'css', watchFiles: [path] };
+        const { css } = await postcss([tailwind()]).process(source, { from: path });
+        return { contents: css, loader: 'css', watchFiles: [path, join(app, 'tailwind.config.cjs')] };
       });
       builder.onEnd(({ errors, outputFiles }) => {
         if (errors.length) return;
         const script = outputFiles.find((file) => file.path.endsWith('app.js'));
         const css = outputFiles.find((file) => file.path.endsWith('styles.css'));
-        revision = JSON.stringify([script.hash, css.hash]);
+        assetRevision = JSON.stringify([script.hash, css.hash]);
         assets = new Map([
           ['/styles.css', ['text/css', css.contents]],
           ['/app.js', ['text/javascript', script.contents]],
@@ -46,13 +62,13 @@ const build = await context({
     },
   }],
 });
-await build.rebuild();
-await build.watch();
+await Promise.all([build.rebuild(), dataBuild.rebuild()]);
+await Promise.all([build.watch(), dataBuild.watch()]);
 
 function dashboardHtml() {
-  return `<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI Analytics</title><link rel="stylesheet" href="/styles.css"><div id="root"></div><script defer src="/app.js"></script>
+  return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI Analytics</title><link rel="stylesheet" href="/styles.css"><div id="root"></div><script defer src="/app.js"></script>
   <script>
-    const revision = ${JSON.stringify(revision)};
+    const revision = ${JSON.stringify(revision())};
     async function checkForUpdate() {
       try {
         const response = await fetch('/__version');
@@ -82,7 +98,7 @@ const server = createServer(async (request, response) => {
   }
   if (request.url === '/__version') {
     response.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    response.end(revision);
+    response.end(revision());
     return;
   }
   if (request.url.split('?')[0] === '/api/analytics') {
@@ -106,5 +122,5 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(Number(process.env.PORT ?? 0), '127.0.0.1', () => {
-  console.log(`AI Analytics · http://127.0.0.1:${server.address().port}\nProjekt · ${project}`);
+  console.log(`AI Analytics · http://127.0.0.1:${server.address().port}\nProject · ${project}`);
 });
