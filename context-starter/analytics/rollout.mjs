@@ -39,11 +39,15 @@ export async function readRolloutUsage(directory, packages) {
   }
   const rows = [];
   const quotas = new Map();
-  if (!sessions.size) return { rows, quotas };
+  const timings = new Map();
+  const startContexts = new Map();
+  const accountUsage = new Map();
+  const unassigned = new Map();
+  if (!sessions.size) return { rows, quotas, accountUsage, unassigned, timings, startContexts };
   for await (const { id, path } of files(directory, sessions)) {
     const turns = sessions.get(id);
     sessions.delete(id);
-    let current, model, before, latest, previousTotal;
+    let current, started, model, before, latest, observed, previousTotal;
     const lines = createInterface({ input: createReadStream(path), crlfDelay: Infinity });
     try {
       for await (const line of lines) {
@@ -57,18 +61,51 @@ export async function readRolloutUsage(directory, packages) {
         if (event.type !== 'event_msg') continue;
         if (payload.type === 'task_started') {
           current = payload.turn_id;
+          started = Date.parse(event.timestamp) / 1000;
           model = null;
           before = latest;
+          observed = null;
         } else if (payload.type === 'task_complete' && payload.turn_id === current) {
-          if (turns.has(current) && before && latest && before !== latest &&
-              Math.abs(before.resetsAt - latest.resetsAt) <= 2 && latest.used >= before.used) {
-            quotas.set(JSON.stringify([id, current]), { before: before.used, after: latest.used });
+          const endedAt = Date.parse(event.timestamp);
+          if (turns.has(current) && Number.isFinite(started) && endedAt >= started * 1000) {
+            timings.set(JSON.stringify([id, current]), { startedAt: started * 1000, endedAt });
+          }
+          if (observed) {
+            const sameWindow = before && Math.abs(before.resetsAt - observed.resetsAt) <= 2;
+            const withinWindow = started >= observed.resetsAt - 18000 && started < observed.resetsAt;
+            if (sameWindow || withinWindow) {
+              const measurement = {
+                resetsAt: observed.resetsAt,
+                used: sameWindow && observed.used >= before.used ? observed.used - before.used : null,
+              };
+              if (turns.has(current)) quotas.set(JSON.stringify([id, current]), measurement);
+              else if (measurement.used > 0) {
+                const group = unassigned.get(measurement.resetsAt) ?? { count: 0, used: 0 };
+                group.count++;
+                group.used += measurement.used;
+                unassigned.set(measurement.resetsAt, group);
+              }
+            }
           }
           current = null;
         } else if (payload.type === 'token_count') {
-          latest = quota(payload) ?? latest;
+          const snapshot = quota(payload);
+          if (snapshot) {
+            latest = snapshot;
+            accountUsage.set(snapshot.resetsAt, Math.max(accountUsage.get(snapshot.resetsAt) ?? 0, snapshot.used));
+            if (current) observed = snapshot;
+          }
           const cumulative = payload.info?.total_token_usage?.total_tokens;
           if (!Number.isSafeInteger(cumulative) || cumulative === previousTotal) continue;
+          if (turns.has(current)) {
+            const key = JSON.stringify([id, current]);
+            if (!startContexts.has(key)) {
+              const input = payload.info?.last_token_usage?.input_tokens;
+              const limit = payload.info?.model_context_window;
+              startContexts.set(key, model && Number.isSafeInteger(input) && input >= 0 && Number.isSafeInteger(limit) && limit > 0
+                ? { model, input, limit, percent: 100 * input / limit } : null);
+            }
+          }
           const last = payload.info?.last_token_usage?.total_tokens;
           if (turns.has(current) && Number.isSafeInteger(last) && last >= 0) {
             rows.push({ sessionId: id, turnId: current, model, tokens: last });
@@ -81,5 +118,5 @@ export async function readRolloutUsage(directory, packages) {
     }
     if (!sessions.size) break;
   }
-  return { rows, quotas };
+  return { rows, quotas, accountUsage, unassigned, timings, startContexts };
 }
