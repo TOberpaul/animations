@@ -11,7 +11,8 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./motion.css": "./dist/styles/motion.css"
+    "./motion.css": "./dist/styles/motion.css",
+    "./motion-classes.css": "./dist/styles/motion-classes.css"
   },
   "scripts": {
     "build": "node scripts/clean-dist.mjs && tsc && node scripts/copy-css.mjs",

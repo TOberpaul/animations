@@ -12,17 +12,18 @@ export function contentTracks(options:ContentTrackOptions):Track[]{
  const display=style.display==='inline'?{display:'inline-block'}:{};
  const from:Keyframe={...display,opacity:0,...(blurEnd===undefined?{filter:blurred}:{})};
  const to:Keyframe={...display,opacity,...(blurEnd===undefined?{filter}:{})};
- const tracks:Track[]=[{element,pseudoElement,easing:'linear',frames:[
+ const revealRange={start,end};
+ const tracks:Track[]=[{element,pseudoElement,easing:'linear',revealRange,frames:[
   {...from,offset:0},{...from,offset:start,easing},{...to,offset:end},{...to,offset:1}
  ]}];
  if(distance){
   if(!CSS.supports('translate',`0 ${distance}`))throw new Error('Content distance must be a CSS length.');
-  tracks.push({element,pseudoElement,easing:'linear',composite:'add',frames:[
+  tracks.push({element,pseudoElement,easing:'linear',composite:'add',revealRange,frames:[
    {translate:`0 ${distance}`,offset:0},{translate:`0 ${distance}`,offset:start,easing},
    {translate:'0 0',offset:end},{translate:'0 0',offset:1}
   ]});
  }
- if(blurEnd!==undefined)tracks.push({element,pseudoElement,easing:'linear',frames:[
+ if(blurEnd!==undefined)tracks.push({element,pseudoElement,easing:'linear',revealRange:{start:0,end:blurEnd},frames:[
   {filter:blurred,offset:0,easing},{filter,offset:blurEnd},{filter,offset:1}
  ]});
  return tracks;

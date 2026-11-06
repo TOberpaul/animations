@@ -9,5 +9,6 @@ examples/shadcn/build/
 
 site/
 /supabase/functions/mcp/generated/
+/supabase/.temp/
 /.codex/context-usage.jsonl
 /.codex/context-packages.json

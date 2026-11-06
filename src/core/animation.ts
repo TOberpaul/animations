@@ -5,9 +5,27 @@ import { revealGroups, hasSurfaceSequence, sequenceTiming } from './content-grou
 import { duration, numberToken, token } from './tokens.js';
 import type { MotionState, Options, Transition } from './lifecycle.js';
 
-export interface Track { element: Element; frames: Keyframe[]; easing?: string; pseudoElement?: string; composite?: CompositeOperation }
+export interface Track { element: Element; frames: Keyframe[]; easing?: string; pseudoElement?: string; composite?: CompositeOperation; revealRange?: { start: number; end: number } }
+
+function retimeExitReveal(tracks: Track[], {start, end}: NonNullable<Options['revealExit']>) {
+  const reveals = tracks.filter(track => track.revealRange);
+  if (!reveals.length) return;
+  const first = Math.min(...reveals.map(track => track.revealRange!.start));
+  const last = Math.max(...reveals.map(track => track.revealRange!.end));
+  if (last <= first) return;
+  for (const track of reveals) {
+    const frames = track.frames.map(frame => ({ ...frame,
+      offset: 1 - end + (end - start) * Math.max(0, Math.min(1, (Number(frame.offset) - first) / (last - first))),
+    }));
+    track.frames = [{ ...frames[0], offset: 0 }, ...frames, { ...frames[frames.length - 1], offset: 1 }];
+  }
+}
+
 export function createTransition(options: Options, pattern: string, tracks: () => Track[], behavior: { keepVisibleWhenClosed?: boolean; durationScale?: () => number; revealTiming?: (count:number,index:number) => {start:number;end:number} } = {}): Transition {
-  const { content } = options;
+  const { content, revealExit, hostOwnsVisibility } = options;
+  if (revealExit && !(0 <= revealExit.start && revealExit.start < revealExit.end && revealExit.end <= 1)) {
+    throw new Error('Reveal exit timing must satisfy 0 <= start < end <= 1.');
+  }
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   let target = options.initiallyOpen ?? false;
   let state: MotionState = target ? 'open' : 'closed';
@@ -16,17 +34,18 @@ export function createTransition(options: Options, pattern: string, tracks: () =
   const opacity = content.style.getPropertyValue('opacity');
   const priority = content.style.getPropertyPriority('opacity');
   function restore() {
+    if (hostOwnsVisibility) return;
     if (opacity) content.style.setProperty('opacity', opacity, priority);
     else content.style.removeProperty('opacity');
   }
-  function endpoint() { restore(); if (!target && !behavior.keepVisibleWhenClosed) content.style.opacity = '0'; }
+  function endpoint() { restore(); if (!target && !hostOwnsVisibility && !behavior.keepVisibleWhenClosed) content.style.opacity = '0'; }
   function notify(next: MotionState) { state = next; options.onStateChange?.(next); }
   function cancel() { generation++; animations.forEach(a => a.cancel()); animations = []; }
   function settle() {
     cancel(); endpoint(); notify(target ? 'open' : 'closed');
   }
   endpoint();
-  function set(next: boolean) {
+  function set(next: boolean, seeking = false) {
     if (state === 'destroyed' || next === target) return;
     target = next;
     // Let adapters settle native effects before the visual-state snapshot.
@@ -35,6 +54,8 @@ export function createTransition(options: Options, pattern: string, tracks: () =
     notify(target ? 'opening' : 'closing');
     if ((state as MotionState) === 'destroyed') return;
     if (reduced.matches || typeof content.animate !== 'function') { settle(); return; }
+    if (!target && hostOwnsVisibility &&
+        (!content.getClientRects().length || getComputedStyle(content).visibility !== 'visible')) { settle(); return; }
     if (!animations.length) {
       try {
         let time = duration(content, pattern);
@@ -62,6 +83,7 @@ export function createTransition(options: Options, pattern: string, tracks: () =
               distance:recipe?.contentEffect==='slide-blur-fade'?token(content,'reveal-distance'):undefined}));
           }
         }
+        if (!target && !seeking && revealExit) retimeExitReveal(descriptions, revealExit);
         for (const track of descriptions) {
           const timing: KeyframeEffectOptions = { duration: time, easing: track.easing ?? easing, fill: 'both', composite: track.composite ?? 'replace' };
           const a = track.pseudoElement
@@ -86,10 +108,10 @@ export function createTransition(options: Options, pattern: string, tracks: () =
     if(!Number.isFinite(progress))throw new Error('Motion progress must be finite.');
     if(state==='destroyed')return;
     const p=Math.max(0,Math.min(1,progress));
-    if(reduced.matches){const next=p>=.5;if(next!==target)set(next);else if(animations.length)settle();return;}
+    if(reduced.matches||typeof content.animate!=='function'){const next=p>=.5;if(next!==target)set(next);else if(animations.length)settle();return;}
     if(!animations.length){
       if((p===0&&state==='closed')||(p===1&&state==='open'))return;
-      set(state!=='open');
+      set(state!=='open', true);
     }
     if(!animations.length)return;
     generation++;

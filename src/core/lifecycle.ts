@@ -15,7 +15,11 @@ export interface Options {
   reveal?: HTMLElement | HTMLElement[];
   /** Component-owned generated content, e.g. a notification's status icon. */
   revealPseudoElements?: Array<'::before' | '::after'>;
+  /** Normalized elapsed close time for the reveal to disappear, starting from fully open. */
+  revealExit?: { start: number; end: number };
   initiallyOpen?: boolean;
+  /** Leave idle visibility to the host and settle immediately if it hides before exit. */
+  hostOwnsVisibility?: boolean;
   /** The component uses this to manage hidden/inert/focus and its own lifecycle. */
   onStateChange?: (state: MotionState) => void;
 }

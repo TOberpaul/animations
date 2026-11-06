@@ -6,7 +6,7 @@ export function motionSettingsTokens(settings){
  return {
   '--motion-duration':time,
   ...Object.fromEntries(['slide','backdrop','content','scale','morph','transfer'].map(pattern=>[`--motion-duration-${pattern}`,time])),
-  '--motion-overshoot-min':`${settings.overshootMinimum??15}%`,
+  '--motion-overshoot-ratio':`${settings.overshootMinimum??15}%`,
   '--motion-overshoot-max':`${settings.overshoot===false?0:settings.overshootMax??.75}rem`,
   '--motion-content-progressive':settings.progressive?'1':'0',
   '--motion-content-stagger':stagger,

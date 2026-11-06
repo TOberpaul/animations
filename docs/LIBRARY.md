@@ -112,22 +112,28 @@ host's CSS keep the surface rendered at its normal open opacity during
 Forward the host's requested state, independently of the held visibility,
 so reopening can reverse the exit. Keep focus and interaction rules in the host.
 
-If the host hides itself immediately, omit both `setPresent` and `stateTarget`. Call `setOpen(true)`
-after the host has made its surface visible and positioned it, then call
-`setOpen(false)` when it hides. This mode plays entry and releases the effect
-on close. It requires a reliable signal from the host integration. Disable any
-competing host animation on the same surface.
+For a host that manages visibility itself, omit both `setPresent` and
+`stateTarget`. Pass all lifecycle options through to the MDK factory. Call
+`setOpen(true)` after the host shows and positions the surface. On close,
+the adapter reuses the active controller and can reverse while the surface
+remains rendered and visible. If the host already hid it, MDK settles
+immediately. Use `stateTarget` or `setPresent` when the host must deliberately
+keep the surface visible through exit. Disable competing host animation on the
+same surface. Without WAAPI, JS controllers settle at their endpoints.
 
 ## Grow on a host-positioned surface
 
-For a popover positioned by its host, opt into transform-based local Grow:
+Use transform-based local Grow by default when the host owns positioning,
+for example with a popover, dropdown, or anchored menu:
 
 ```ts
 const motion = createGrowTransition({ content: surface, resize: 'transform' });
 ```
 
 Use `--motion-scale-origin: inline-end block-start` for logical placement in
-either text direction or writing mode. Use `right top` for a physical anchor.
+either text direction or writing mode. The MDK JS token resolves logical
+keywords. CSS `transform-origin` itself accepts physical values such as
+`right top`.
 Omit `trigger` when the component owns positioning and you want local growth.
 Pass `trigger` only to grow from the trigger's edge. Use
 `--motion-scale-from` for its starting scale. MDK adds the animation to the
@@ -142,6 +148,36 @@ Origin and dimensions are measured at the start of each animation.
 The default `resize: 'metrics'` still resizes the actual surface. Grow with a
 `trigger` continues to use trigger-edge geometry. The local transform mode
 supports HTML surfaces without an SVG overlay.
+
+## Tune the exit reveal
+
+Use `revealExit: { start: 0.45, end: 0.9 }` on a JS controller to keep
+content visible through the first 45% of a close and finish concealing it
+at 90%. Values are fractions of elapsed close time and must satisfy
+`0 <= start < end <= 1`. The option preserves the relative reveal stagger
+and applies when closing from fully open. An interrupted transition retains
+its active keyframes for continuous reversal. Without this option, exit plays
+the entry reveal in reverse.
+
+## Optional CSS-only motion
+
+Load `@tobiasoberpaul/mdk/motion.css` and
+`@tobiasoberpaul/mdk/motion-classes.css`. Put `data-motion-css="fade"`,
+`"slide"`, or `"grow"` on a dedicated motion layer and toggle
+`data-state="open"` / `"closed"`. Keep the layer rendered through exit.
+The host handles presence, focus, dismissal, and accessibility.
+
+| Use case | CSS-only layer | JS controller |
+| --- | --- | --- |
+| Simple fade, horizontal slide, or local scale | Yes, using shared duration, easing and distance or scale tokens | Optional |
+| Grow on an already transformed host surface | Use a dedicated inner layer with a physical origin | Use transform Grow to compose with the host transform |
+| Logical Grow origins, overshoot, custom reveal exit, or seeking | | Required |
+| Trigger-edge Grow, Extract, Morph, or two-pane Slide | | Required |
+
+CSS transitions reverse on a state change while the layer stays rendered.
+`@starting-style` supplies entry styles on first display where supported.
+Reduced-motion CSS settles immediately. Use a physical `--motion-scale-origin`
+value for CSS-only Grow.
 
 ## Public behavior factories
 

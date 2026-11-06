@@ -1,0 +1,47 @@
+/* Opt-in motion on a dedicated layer. The host owns presence and focus. */
+:where([data-motion-css="fade"]) {
+  transition: opacity var(--motion-duration-content) var(--motion-easing-content);
+}
+
+:where([data-motion-css="slide"]) {
+  transition: opacity var(--motion-duration-slide) var(--motion-easing-slide),
+    translate var(--motion-duration-slide) var(--motion-easing-slide);
+}
+
+:where([data-motion-css="grow"]) {
+  transform-origin: var(--motion-scale-origin);
+  transition: opacity var(--motion-duration-scale) var(--motion-easing-scale),
+    scale var(--motion-duration-scale) var(--motion-easing-scale);
+}
+
+:where([data-motion-css="fade"], [data-motion-css="slide"], [data-motion-css="grow"]):where([data-state="closed"]) {
+  opacity: 0;
+}
+
+:where([data-motion-css="slide"]):where([data-state="closed"]) {
+  translate: var(--motion-slide-distance) 0;
+}
+
+:where([data-motion-css="grow"]):where([data-state="closed"]) {
+  opacity: var(--motion-scale-opacity);
+  scale: var(--motion-scale-from);
+}
+
+@starting-style {
+  :where([data-motion-css="fade"], [data-motion-css="slide"], [data-motion-css="grow"]):where([data-state="open"]) {
+    opacity: 0;
+  }
+  :where([data-motion-css="slide"]):where([data-state="open"]) {
+    translate: var(--motion-slide-distance) 0;
+  }
+  :where([data-motion-css="grow"]):where([data-state="open"]) {
+    opacity: var(--motion-scale-opacity);
+    scale: var(--motion-scale-from);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where([data-motion-css="fade"], [data-motion-css="slide"], [data-motion-css="grow"]) {
+    transition-duration: 0ms;
+  }
+}

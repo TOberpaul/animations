@@ -270,6 +270,53 @@ test('metrics Grow restores inline layout and settles without WAAPI', async ({pa
   expect(result).toEqual({restored:true,opened:true,closed:true});
 });
 
+test('custom reveal exit timing preserves the active timeline on reversal', async ({page}) => {
+  const result = await page.evaluate(async () => {
+    const {createGrowTransition} = await import('/dist/index.js');
+    const surface = document.createElement('div');
+    surface.style.cssText = 'position:fixed;width:200px;height:100px;--motion-duration-scale:1000ms';
+    const label = surface.appendChild(document.createElement('span'));
+    label.textContent = 'Reveal';
+    document.body.append(surface);
+    const grow = createGrowTransition({content:surface, reveal:label, resize:'transform',
+      initiallyOpen:true, revealExit:{start:.5,end:.9}});
+    grow.close();
+    const tracks = surface.getAnimations({subtree:true});
+    const reveal = label.getAnimations()[0];
+    const seek = elapsed => tracks.forEach(track => {track.pause();track.currentTime=1000-elapsed;});
+    seek(400);
+    const held = Number(getComputedStyle(label).opacity);
+    seek(700);
+    const during = Number(getComputedStyle(label).opacity);
+    grow.open();
+    const same = label.getAnimations()[0] === reveal && reveal.playbackRate === 1;
+    const continuous = Math.abs(Number(getComputedStyle(label).opacity) - during) < .02;
+    grow.destroy();
+    return {held,during,same,continuous};
+  });
+  expect(result).toMatchObject({held:1,same:true,continuous:true});
+  expect(result.during).toBeGreaterThan(.1);
+  expect(result.during).toBeLessThan(.9);
+});
+
+test('optional CSS layer uses shared tokens and honours reduced motion', async ({page}) => {
+  await page.addStyleTag({url:'/dist/styles/motion-classes.css'});
+  const layer = page.locator('#css-motion-test');
+  await page.evaluate(() => {
+    const el = document.createElement('div');
+    el.id='css-motion-test';
+    el.dataset.motionCss='grow';
+    el.dataset.state='closed';
+    el.style.cssText='width:200px;height:100px;--motion-scale-from:.5;--motion-duration-scale:1000ms';
+    document.body.append(el);
+  });
+  await expect(layer).toHaveCSS('scale','0.5');
+  await layer.evaluate(el => { el.dataset.state='open'; });
+  await expect.poll(() => layer.evaluate(el => el.getAnimations().length)).toBeGreaterThan(0);
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await expect(layer).toHaveCSS('transition-duration','0s');
+});
+
 test('presence adapter reverses while held and restores styles for host-owned entry', async ({page}) => {
   const result = await page.evaluate(async () => {
     const {createGrowTransition, createPresenceMotion} = await import('/dist/index.js');
@@ -297,6 +344,12 @@ test('presence adapter reverses while held and restores styles for host-owned en
     surface.hidden = false;
     entry.setOpen(true);
     const firstEntry = surface.getAnimations()[0];
+    firstEntry.pause();
+    firstEntry.currentTime = 400;
+    entry.setOpen(false);
+    const hostReversed = surface.getAnimations()[0] === firstEntry && firstEntry.playbackRate === -1;
+    entry.setOpen(true);
+    const hostReopened = surface.getAnimations()[0] === firstEntry && firstEntry.playbackRate === 1;
     surface.hidden = true;
     entry.setOpen(false);
     const released = firstEntry.playState === 'idle' && surface.style.opacity === '0.8' && surface.hidden;
@@ -305,9 +358,9 @@ test('presence adapter reverses while held and restores styles for host-owned en
     const replayed = surface.getAnimations().some(animation => animation !== firstEntry);
     entry.destroy();
     surface.remove();
-    return {held, reversed, closed, released, replayed};
+    return {held, reversed, closed, released, replayed, hostReversed, hostReopened};
   });
-  expect(result).toEqual({held:true, reversed:true, closed:true, released:true, replayed:true});
+  expect(result).toEqual({held:true, reversed:true, closed:true, released:true, replayed:true, hostReversed:true, hostReopened:true});
 });
 
 test('rapid repeated interactions settle on the latest target', async ({page}) => {

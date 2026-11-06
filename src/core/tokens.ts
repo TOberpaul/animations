@@ -37,9 +37,10 @@ export function lengthToken(element: Element, name: string): number {
 
 /** Proportional overshoot per edge, capped by the pattern's CSS length budget. */
 export function overshootToken(element:HTMLElement,name:string,width?:number,height?:number):number{
-  const percentage=getComputedStyle(element).getPropertyValue('--motion-overshoot-ratio').trim() || token(element,'overshoot-min');
-  if(!/^\d+(?:\.\d+)?%$/.test(percentage))throw new Error('--motion-overshoot-ratio must be a non-negative percentage.');
   const style=getComputedStyle(element);
+  const percentage=style.getPropertyValue('--motion-overshoot-ratio').trim() ||
+    style.getPropertyValue('--motion-overshoot-min').trim() || '15%';
+  if(!/^\d+(?:\.\d+)?%$/.test(percentage))throw new Error('--motion-overshoot-ratio must be a non-negative percentage.');
   const w=width??parseFloat(style.width),h=height??parseFloat(style.height);
   return Math.min(Math.min(w,h)*parseFloat(percentage)/100,lengthToken(element,name));
 }

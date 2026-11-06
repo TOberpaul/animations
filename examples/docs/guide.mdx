@@ -72,7 +72,7 @@ function dispose() {
  ].filter(([name])=>motionBehaviors[name]).map(row=><tr key={row[0]}>{row.map(cell=><td key={cell}>{cell}</td>)}</tr>)}</tbody></table></div><p>Grow, Extract and Morph keep the inner content stationary and reveal it with fade and blur. All controllers expose <code>open()</code>, <code>close()</code>, <code>toggle()</code>, <code>destroy()</code>, <code>state</code> and <code>isOpen</code>. Reversing an active transition reuses its timeline.</p>
 
 <h3 className="docs-subheading">Grow a surface positioned by its component</h3>
-<p>Use transform Grow without a trigger when the host owns placement. Logical origins follow text direction and writing mode. Forward the host’s open and close requests to the presence adapter.</p>
+<p>Use transform Grow as the default when a popover or dropdown owns placement. Omit the trigger for local growth. Set logical origins through <code>--motion-scale-origin</code>, which MDK resolves for the current writing direction. CSS <code>transform-origin</code> uses physical values.</p>
 
 ```js
 import { createGrowTransition, createPresenceMotion } from '@tobiasoberpaul/mdk';
@@ -87,7 +87,9 @@ const motion = createPresenceMotion({
 // Unsubscribe and call motion.destroy() when the component unmounts.
 ```
 
-<p>With <code>stateTarget</code>, keep the surface rendered at its normal open opacity while <code>data-motion-state="closing"</code>. Use <code>setPresent</code> when the host offers imperative presence control. For a host that hides immediately, omit both options and call <code>setOpen(true)</code> after the surface becomes visible.</p>
+<p>With <code>stateTarget</code>, keep the surface rendered at its normal open opacity while <code>data-motion-state="closing"</code>. Use <code>setPresent</code> for imperative presence control. With neither option, the controller can reverse while the surface stays visible and settles immediately when the host has already hidden it.</p>
+
+<p>Use <code>revealExit</code> to set when the inner content fades during a full close. For simple fades, horizontal slides and local scales, the optional <code>motion-classes.css</code> export provides a CSS-only layer driven by <code>data-state</code>. Use JS for measured geometry, overshoot, logical origins or seek.</p>
 
 <p>Upgrading from the former Liquid API or markup? Use Extract when the source stays visible and Morph when the source becomes the target. Shared timing and geometry overrides now use <code>--motion-duration-transfer</code> and <code>--motion-transfer-*</code>.</p>
 

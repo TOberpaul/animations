@@ -2,7 +2,7 @@ import type { MotionState, Options, Transition } from './core/lifecycle.js';
 
 export interface PresenceMotionOptions extends Pick<Options, 'initiallyOpen'> {
   /** Create a fresh MDK transition using the lifecycle options supplied by the adapter. */
-  createTransition(lifecycle: Pick<Options, 'initiallyOpen' | 'onStateChange'>): Transition;
+  createTransition(lifecycle: Pick<Options, 'initiallyOpen' | 'onStateChange' | 'hostOwnsVisibility'>): Transition;
   /** Supply only if the integration can synchronously show and hide the surface.
    * Without this callback, call setOpen(true) after the host has shown the surface. */
   setPresent?(present: boolean): void;
@@ -25,9 +25,10 @@ export function createPresenceMotion(options: PresenceMotionOptions): PresenceMo
   let destroyed = false;
   let controller: Transition | undefined;
 
-  if (setPresent || stateTarget) {
+  if (open || setPresent || stateTarget) {
     controller = createTransition({
       initiallyOpen: open,
+      hostOwnsVisibility: !setPresent,
       onStateChange(state) {
         if (state === 'destroyed') return;
         stateTarget?.setAttribute(stateAttribute, state);
@@ -47,14 +48,10 @@ export function createPresenceMotion(options: PresenceMotionOptions): PresenceMo
       if (destroyed || next === open) return;
       open = next;
       if (next) {
-        controller ??= createTransition({ initiallyOpen: false });
+        controller ??= createTransition({ initiallyOpen: false, hostOwnsVisibility: true });
         controller.open();
-      } else if (setPresent || stateTarget) {
-        controller?.close();
       } else {
-        // The host already owns visibility. Release visual styles for the next entry.
-        controller?.destroy();
-        controller = undefined;
+        controller?.close();
       }
     },
     destroy() {
