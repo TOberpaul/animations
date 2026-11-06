@@ -9,7 +9,7 @@ Keep page content in `docs/*.mdx` and public paths in `routes.js`. Resolve inter
 Use Motion Development Kit as the product name in page titles and the desktop home link. Use MDK for the visible home link below 768px and keep its full accessible name.
 
 Keep the settings panel fixed to the full viewport height above the site header. Keep its portaled select menus above the panel and provide a close control inside it.
-Raise an example provider iframe above the shell header and provider switch for the lifetime of its modal overlay or notification, including exit. Use width-only Grow from the right edge for the right-side panels and reveal complete settings cards as content groups.
+Raise an example provider iframe above the shell header and provider switch for the lifetime of its modal overlay or notification, including exit. Keep the gallery background transparent while the frame is raised so shell controls remain visible outside the overlay surface. Use width-only Grow from the right edge for the right-side panels and reveal complete settings cards as content groups.
 
 # Website motion source
 

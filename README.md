@@ -31,4 +31,6 @@ The library includes Grow, Extract, Morph, Slide and Fade. See the [library guid
 
 Coding assistants can access the MDK reference and integration examples through the public MCP server. See the [MCP setup](https://github.com/TOberpaul/animations/blob/main/docs/AI_INTEGRATION.md#hosted-mcp).
 
+Install the portable [MDK integration skill](https://github.com/TOberpaul/mdk/blob/main/docs/AI_INTEGRATION.md#install-the-integration-skill) to give your coding assistant a workflow for using the installed library.
+
 Licensed under [MIT](LICENSE).

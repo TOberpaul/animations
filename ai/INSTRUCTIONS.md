@@ -2,7 +2,7 @@
 
 Use the installed MDK package instead of copying animation implementations into applications.
 
-1. Read `motion://guide` and `get_motion_reference` with topic `api` before choosing options. The built declarations and CSS tokens are authoritative.
+1. Follow the workflow in `motion://skill`. Match the reference to the installed MDK version and read the guide, relevant API declarations and CSS tokens before choosing options.
 2. Choose Grow for anchored surfaces, Extract to retain the trigger, Morph to replace it, Slide for translation, and Fade for slide/blur/fade content reveals.
 3. Keep layout, positioning, semantics, visibility, focus, keyboard handling and lifecycle owned by the consuming component. Optional positioning is explicit; do not replace an existing positioning system.
 4. Include all visible elements in reveal groups: headings, controls, labels, icons, dividers and rows. Keep related elements together. Grow/Extract/Morph content does not slide.

@@ -7,9 +7,10 @@ export function createMotionMcp({motionBehaviors,read,readApi}){
   {uri:'motion://guide',name:'motion_guide',mimeType:'text/markdown',path:'docs/LIBRARY.md'},
   {uri:'motion://tokens',name:'motion_tokens',mimeType:'text/css',path:'dist/styles/motion.css'},
   {uri:'motion://instructions',name:'motion_integration_rules',mimeType:'text/markdown',path:'ai/INSTRUCTIONS.md'},
+  {uri:'motion://skill',name:'mdk_integration_skill',mimeType:'text/markdown',path:'skills/mdk-integration/SKILL.md'},
  ];
  const tools=[
-  {name:'get_motion_reference',description:'Read the current library guide, design tokens, API declarations or canonical behavior definitions.',inputSchema:{type:'object',properties:{topic:{type:'string',enum:['guide','tokens','api','behaviors','instructions']}},required:['topic'],additionalProperties:false}},
+  {name:'get_motion_reference',description:'Read the current library guide, design tokens, API declarations, behavior definitions or integration skill.',inputSchema:{type:'object',properties:{topic:{type:'string',enum:['guide','tokens','api','behaviors','instructions','skill']}},required:['topic'],additionalProperties:false}},
   {name:'create_motion_example',description:'Generate a minimal integration using the MDK API. Returns source text; never executes or writes it.',inputSchema:{type:'object',properties:{behavior:{type:'string',enum:Object.keys(motionBehaviors)},activation:{type:'string',enum:['click','hover','focus','observer','scroll','manual']},placement:{type:'string',enum:['center','top','bottom','left','right','bottom-end','top-end']},relativeTo:{type:'string',enum:['trigger','viewport']},space:{type:'number',minimum:0,maximum:128}},required:['behavior'],additionalProperties:false}},
  ].map(tool=>({...tool,annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}}));
  function invalid(message){throw Object.assign(new Error(message),{code:-32602});}

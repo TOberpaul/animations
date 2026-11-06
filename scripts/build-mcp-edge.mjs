@@ -4,7 +4,7 @@ import {motionBehaviors} from '../dist/behaviors.js';
 
 const root = new URL('../', import.meta.url);
 const output = new URL('supabase/functions/mcp/generated/', root);
-const paths = ['docs/LIBRARY.md', 'ai/INSTRUCTIONS.md', 'dist/styles/motion.css'];
+const paths = ['docs/LIBRARY.md', 'ai/INSTRUCTIONS.md', 'dist/styles/motion.css', 'skills/mdk-integration/SKILL.md'];
 const references = Object.fromEntries(await Promise.all(paths.map(async path =>
   [path, await readFile(new URL(path, root), 'utf8')]
 )));

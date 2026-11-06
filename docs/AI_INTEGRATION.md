@@ -2,6 +2,31 @@
 
 The read-only MDK MCP server gives coding assistants access to the library guide, tokens, API and integration examples.
 
+## Install the integration skill
+
+`mdk-integration` uses the portable Agent Skills format. Import the
+[`skills/mdk-integration` folder](../skills/mdk-integration/) into your
+assistant's skill directory. It is also included at
+`node_modules/@tobiasoberpaul/mdk/skills/mdk-integration/` in packages that
+ship the skill. Prefer the copy that matches the application's MDK version.
+
+- **Codex** reads repository skills from `.agents/skills/`.
+- **Kiro** reads workspace skills from `.kiro/skills/` and supports importing the folder.
+- **Other Agent Skills clients** can use the same folder in their documented skill location.
+
+Invoke `mdk-integration` for the first task using your client's skill picker
+or explicit skill syntax. A client with automatic skill selection can then
+recognize it on related tasks. Package installation and MCP connection make
+the content available; skill discovery is configured in the assistant.
+
+For clients without skills, paste this into the client's project instructions
+(such as `AGENTS.md` where supported) or into the task prompt:
+
+> For MDK work, read and follow `skills/mdk-integration/SKILL.md` from the installed MDK package or the MDK repository. Use the guide, API and tokens that match the installed version. Keep host layout, presence and focus under host control. Use the installed MDK API and verify opening, closing, interruption and reduced motion.
+
+The skill works without MCP using the files in the installed package. A client
+with MCP can also read the instructions through `motion://skill`.
+
 ## Hosted MCP
 
 Connect a client that supports Streamable HTTP to the public endpoint. It requires no API key, sign-in or local checkout.
@@ -61,7 +86,7 @@ VS Code-style entry:
 
 ## Supabase deployment
 
-The `mcp` Edge Function exposes the same read-only MDK tools, resources and prompt over Streamable HTTP. Its generated bundle contains the public guide, integration rules, CSS tokens, behavior definitions and API declarations. The endpoint is public and needs no database.
+The `mcp` Edge Function exposes the same read-only MDK tools, resources and prompt over Streamable HTTP. Its generated bundle contains the public guide, integration rules, skill, CSS tokens, behavior definitions and API declarations. The endpoint is public and needs no database.
 
 With a Supabase project and Node.js 20 or newer, run from the repository root:
 
@@ -79,11 +104,12 @@ Rebuild the bundle before each deployment to keep the served reference in sync w
 
 | Capability | Purpose |
 | --- | --- |
-| `get_motion_reference` | Read guide, tokens, built TypeScript declarations, integration rules or canonical behavior definitions. |
+| `get_motion_reference` | Read guide, tokens, built TypeScript declarations, integration rules, skill or canonical behavior definitions. |
 | `create_motion_example` | Generate a minimal disclosure integration for a selected behavior/activation, with optional placement. Returns code text without executing it. |
 | `motion://guide` | Public library guide. |
 | `motion://tokens` | Actual built motion.css. |
 | `motion://instructions` | Portable integration rules. |
+| `motion://skill` | The portable `mdk-integration` skill. |
 | `integrate_motion` prompt | A starting instruction for an AI-assisted component integration. |
 
 The hosted endpoint serves the reference bundled at deployment. The local adapter reads the guide, API declarations, tokens and behavior definitions from the checkout and its build output.
@@ -93,7 +119,5 @@ Example request to your AI: “Use the MDK MCP to add an interruptible Grow tran
 ## Compatibility and scope
 
 The local adapter uses newline-delimited JSON-RPC over stdio. It supports initialization-based MCP versions 2025-03-26 / 2025-06-18 / 2025-11-25 and discovery-based version 2026-07-28. The Edge Function uses stateless Streamable HTTP and supports initialization-based clients through version 2025-11-25. Both adapters offer read-only tools, resources and prompts.
-
-For clients without MCP, provide `ai/INSTRUCTIONS.md` and `docs/LIBRARY.md` as repository context, or reference them from the client's own instruction file. A model-specific skill or power is not required.
 
 The stdio server runs locally alongside the AI client. Launch it from a built repository checkout using the command above.

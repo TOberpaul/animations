@@ -149,6 +149,56 @@ The default `resize: 'metrics'` still resizes the actual surface. Grow with a
 `trigger` continues to use trigger-edge geometry. The local transform mode
 supports HTML surfaces without an SVG overlay.
 
+### Connect a host-positioned flyout
+
+When a host positions a flyout using `getBoundingClientRect()`, keep its
+positioning and measurement box stable. Animate an inner surface that owns
+the visible border, background and content. Put `motion.css` in the app
+stylesheet and set the surface's `--motion-scale-origin` to match its
+placement, such as `inline-end block-start` for a surface growing from
+its top end in horizontal writing.
+
+```js
+import { createGrowTransition, createPresenceMotion } from '@tobiasoberpaul/mdk';
+
+export function connectFlyoutMotion({ surface, getOpen, subscribeOpen, setPresent }) {
+  const motion = createPresenceMotion({
+    initiallyOpen: getOpen(),
+    setPresent,
+    createTransition: lifecycle => createGrowTransition({
+      ...lifecycle,
+      content: surface,
+      resize: 'transform',
+      reveal: [...surface.children],
+    }),
+  });
+
+  const unsubscribe = subscribeOpen(open => motion.setOpen(open));
+  return () => {
+    unsubscribe();
+    motion.destroy();
+  };
+}
+```
+
+`getOpen` and `subscribeOpen` read the host's requested state. Implement
+`setPresent` with the host's supported presence API so the flyout is
+measurable and positioned when it returns from `setPresent(true)`. Keep the
+same surface mounted until MDK calls `setPresent(false)`. The host still owns
+focus, keyboard behavior, dismissal and `aria-expanded`.
+
+If `aria-expanded` is the only signal, read its initial value and observe that
+attribute on the trigger. Forward changes as requested state. An attribute
+observer runs after the host's synchronous work. If the host immediately
+hides or unmounts the surface, use its presence API or a supported CSS hold
+driven by `stateTarget` before relying on the observer for an animated exit.
+`stateTarget` reflects motion state as `data-motion-state`; the host must use
+that signal to keep the surface rendered and visible during `closing`.
+
+Group all visible inner content for reveal. Test opening, closing, reopening
+mid-exit, keyboard dismissal, reduced motion and placement stability in the
+actual host.
+
 ## Tune the exit reveal
 
 Use `revealExit: { start: 0.45, end: 0.9 }` on a JS controller to keep

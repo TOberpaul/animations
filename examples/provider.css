@@ -95,3 +95,8 @@ html body{background:var(--gallery-background)!important;color:var(--gallery-for
 @media(max-width:767.98px){.mini-grid>.page-header{padding-top:48px}}
 /* Same full-height scroll viewport and initial header spacer as Documentation. */
 .mini-grid{padding-top:calc(var(--shell-header-slot,96px) + var(--page-entry))}
+
+/* The raised frame lets shell controls show through its gallery background. */
+html[data-viewport-overlay],
+html[data-viewport-overlay] body,
+html[data-viewport-overlay] .mini-grid{background-color:transparent!important}
